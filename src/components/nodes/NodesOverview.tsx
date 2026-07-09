@@ -16,13 +16,19 @@ function formatDate(iso: string): string {
 
 function StatusBadge({ status }: { status: NodeRecord["status"] }) {
   const label = status === "registered" ? "Registered" : "Inactive";
-  const className =
-    status === "registered"
-      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-      : "border-gray-500/40 bg-gray-500/10 text-content-secondary";
+  const isRegistered = status === "registered";
 
   return (
-    <span className={`rounded-full border px-2.5 py-0.5 text-xs ${className}`}>
+    <span
+      className={`inline-flex items-center gap-1.5 text-xs ${
+        isRegistered ? "text-emerald-600 dark:text-emerald-400" : "text-content-muted"
+      }`}
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${
+          isRegistered ? "bg-emerald-500" : "bg-content-muted"
+        }`}
+      />
       {label}
     </span>
   );
@@ -139,43 +145,41 @@ export function NodesOverview({ hideStats = false }: { hideStats?: boolean }) {
           No nodes registered yet. Register your first node below.
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-surface-border bg-surface-panel">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-surface-border bg-surface/60 text-content-secondary">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Node ID</th>
-                  <th className="px-4 py-3 font-medium">Owner</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Registered</th>
-                </tr>
-              </thead>
-              <tbody>
-                {nodes.map((node) => (
-                  <tr
-                    key={node.id}
-                    className="border-b border-surface-border/70 last:border-0"
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-surface-border text-content-muted">
+                <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide">Node ID</th>
+                <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide">Owner</th>
+                <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide">Status</th>
+                <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide">Registered</th>
+              </tr>
+            </thead>
+            <tbody>
+              {nodes.map((node) => (
+                <tr
+                  key={node.id}
+                  className="border-b border-surface-border/40 last:border-0"
+                >
+                  <td className="px-4 py-3 font-mono text-xs text-content-secondary sm:text-sm">
+                    {node.nodeId}
+                  </td>
+                  <td
+                    className="px-4 py-3 font-mono text-xs text-content-secondary"
+                    title={node.ownerWallet}
                   >
-                    <td className="px-4 py-3 font-mono text-xs text-content-secondary sm:text-sm">
-                      {node.nodeId}
-                    </td>
-                    <td
-                      className="px-4 py-3 font-mono text-xs text-content-secondary"
-                      title={node.ownerWallet}
-                    >
-                      {truncateAddress(node.ownerWallet)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={node.status} />
-                    </td>
-                    <td className="px-4 py-3 text-content-secondary">
-                      {formatDate(node.createdAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    {truncateAddress(node.ownerWallet)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <StatusBadge status={node.status} />
+                  </td>
+                  <td className="px-4 py-3 text-content-muted">
+                    {formatDate(node.createdAt)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

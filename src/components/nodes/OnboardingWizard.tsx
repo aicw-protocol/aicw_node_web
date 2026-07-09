@@ -33,7 +33,7 @@ const NETWORK_CONFIG_TEMPLATE = `# Network configuration for AICW node
 
 environment: development
 event_initiator_algorithm: ed25519
-event_initiator_pubkey: "1edd2a335fed15952688a0f58da0d5ddaa5baac6e9b04c9931de67e8b8a92b11"
+event_initiator_pubkey: "085e3dd81362735e85deba4745751bb2fe2f947ab223be27d412f5adfced963d"
 chain_code: "5c22c2856d3657a2835bfb05cb2a6dbc9456f9d582550f9f6c06670417ee4086"
 
 nats:
