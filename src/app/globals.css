@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-logo: "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  --color-surface: #ffffff;
+  --color-surface-panel: #f7f7f8;
+  --color-surface-elevated: #ececf1;
+  --color-surface-border: #e3e3e8;
+  --color-content-primary: #0d0d0d;
+  --color-content-secondary: #565869;
+  --color-content-muted: #8e8ea0;
+  --color-accent: #6b7cff;
+  --color-accent-muted: #8b7cff;
+  --color-overlay: rgba(0, 0, 0, 0.45);
+  --color-toast-bg: #ffffff;
+  --color-toast-border: #e3e3e8;
+  --color-toast-text: #0d0d0d;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --color-surface: #212121;
+  --color-surface-panel: #171717;
+  --color-surface-elevated: #2f2f2f;
+  --color-surface-border: #3a3a3a;
+  --color-content-primary: #ececec;
+  --color-content-secondary: #b4b4b4;
+  --color-content-muted: #8e8e8e;
+  --color-accent: #7c8cff;
+  --color-accent-muted: #9c7cff;
+  --color-overlay: rgba(0, 0, 0, 0.55);
+  --color-toast-bg: #2f2f2f;
+  --color-toast-border: #3a3a3a;
+  --color-toast-text: #ececec;
+}
+
+  --color-globe-bg: #d4d9e2;
+  --color-hero-bg: #eef0f4;
+  --color-hero-gradient: rgba(238, 240, 244, 0.96);
+
+.light {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply min-h-screen bg-surface text-content-primary antialiased;
+}
+
+.dark body {
+  background-image: radial-gradient(circle at 20% 0%, #2a3142 0%, #171717 45%);
+}
+
+.light body {
+  background-color: var(--color-surface);
+}
+
+a {
+  @apply no-underline;
+}
+
+/* Wallet adapter modal — theme aware */
+.wallet-adapter-modal-wrapper {
+  background: var(--color-overlay) !important;
+}
+
+.wallet-adapter-modal {
+  background: var(--color-surface-panel) !important;
+  border: 1px solid var(--color-surface-border) !important;
+}
+
+.wallet-adapter-modal-title {
+  color: var(--color-content-primary) !important;
+  --color-globe-bg: #070b14;
+  --color-hero-bg: #06080f;
+  --color-hero-gradient: rgba(11, 14, 20, 0.96);
+
+}
+
+.wallet-adapter-button {
+  background-color: var(--color-surface-elevated) !important;
+  color: var(--color-content-primary) !important;
+}
+
+.wallet-adapter-button:hover {
+  filter: brightness(0.95);
+}
+
+.dark .wallet-adapter-button:hover {
+  filter: brightness(1.15);
+}
+
+@keyframes counter-bump {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-counter-bump {
+  animation: counter-bump 0.65s ease-out;
+}

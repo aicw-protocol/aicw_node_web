@@ -1,0 +1,44 @@
+# Dependencies & build
+node_modules/
+.next/
+out/
+.vercel/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Local / internal docs (do not publish)
+order.md
+vps.md
+resistry.md
+
+# Node runtime configs (not part of this web app; may contain secrets)
+config.yaml
+network-config.yaml
+operator-config.yaml
+password.txt
+
+# Node identity files (never commit)
+identity/
+*_identity.json
+*_private_key.txt
+
+# Test / duplicate assets
+public/maps/world-land-mask-test.png
+scripts/ne_110m_land.geojson
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Logs & OS
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Editor (local only)
+.vscode/
+.idea/
