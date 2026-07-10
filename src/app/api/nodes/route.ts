@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { PublicKey } from "@solana/web3.js";
 import { isDatabaseConfigured } from "@/lib/db/config";
-import { listNodes, registerNode } from "@/lib/db/nodes";
+import { listNodes, registerNode, deleteNodeById } from "@/lib/db/nodes";
 import { assertCanRegisterNode } from "@/lib/nodeEligibility";
+import { addNodeToMembershipWhitelist } from "@/lib/consul/membershipWhitelist";
+import { isConsulWhitelistEnabled } from "@/lib/consul/config";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +70,16 @@ export async function POST(request: Request) {
     );
   }
 
+  if (isConsulWhitelistEnabled() && !publicKey) {
+    return NextResponse.json(
+      {
+        error:
+          "publicKey is required when Consul auto-whitelist is enabled (Create node flow provides it automatically)",
+      },
+      { status: 400 },
+    );
+  }
+
   try {
     await assertCanRegisterNode(ownerWallet);
     const node = await registerNode({
@@ -78,7 +90,38 @@ export async function POST(request: Request) {
       latitude: body.latitude,
       longitude: body.longitude,
     });
-    return NextResponse.json({ node }, { status: 201 });
+
+    try {
+      const whitelist = await addNodeToMembershipWhitelist({
+        nodeId: node.nodeId,
+        publicKey: node.publicKey ?? publicKey ?? "",
+        ownerWallet: node.ownerWallet,
+        nodeName: node.nodeName,
+      });
+
+      return NextResponse.json(
+        {
+          node,
+          whitelist: whitelist.skipped
+            ? { added: false, reason: "consul_not_configured" }
+            : { added: true, key: whitelist.key },
+        },
+        { status: 201 },
+      );
+    } catch (whitelistError) {
+      try {
+        await deleteNodeById(node.id);
+      } catch (rollbackError) {
+        console.error("Failed to rollback node after whitelist error:", rollbackError);
+      }
+
+      const message =
+        whitelistError instanceof Error
+          ? whitelistError.message
+          : "Failed to add node to Consul membership whitelist";
+      console.error("POST /api/nodes whitelist failed:", whitelistError);
+      return NextResponse.json({ error: message }, { status: 502 });
+    }
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to register node";

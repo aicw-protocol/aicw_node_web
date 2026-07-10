@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { truncateAddress } from "@/lib/formatWallet";
 import type { NodeListResponse, NodeRecord } from "@/lib/db/types";
+import { CopyIconButton } from "@/components/CopyIconButton";
 
 type LoadState = "loading" | "ready" | "error" | "unconfigured";
 
@@ -149,20 +150,47 @@ export function NodesOverview({ hideStats = false }: { hideStats?: boolean }) {
           <table className="min-w-full text-left text-sm">
             <thead>
               <tr className="border-b border-surface-border text-content-muted">
-                <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide">Node ID</th>
+                <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide">
+                  Node name
+                </th>
+                <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide">
+                  Node ID
+                </th>
                 <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide">Owner</th>
                 <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide">Status</th>
-                <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide">Registered</th>
+                <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide">
+                  Registered
+                </th>
               </tr>
             </thead>
             <tbody>
               {nodes.map((node) => (
                 <tr
                   key={node.id}
-                  className="border-b border-surface-border/40 last:border-0"
+                  className="border-b border-surface-border last:border-0"
                 >
-                  <td className="px-4 py-3 font-mono text-xs text-content-secondary sm:text-sm">
-                    {node.nodeId}
+                  <td className="max-w-[8rem] px-4 py-3 sm:max-w-[10rem] lg:max-w-[12rem]">
+                    {node.nodeName ? (
+                      <span
+                        className="block truncate text-sm text-content-primary"
+                        title={node.nodeName}
+                      >
+                        {node.nodeName}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-content-muted">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-0.5">
+                      <span
+                        className="min-w-0 truncate font-mono text-xs text-content-secondary sm:max-w-[14rem] sm:text-sm lg:max-w-none"
+                        title={node.nodeId}
+                      >
+                        {node.nodeId}
+                      </span>
+                      <CopyIconButton value={node.nodeId} label="Node ID" />
+                    </div>
                   </td>
                   <td
                     className="px-4 py-3 font-mono text-xs text-content-secondary"

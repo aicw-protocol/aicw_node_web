@@ -29,14 +29,15 @@ interface GlobeSceneProps {
 
 function GlobeScene({ nodes, points, autoRotate, config }: GlobeSceneProps) {
   const offsetX = config.globeOffsetX;
+  const offsetY = config.globeOffsetY;
   const controlsRef = useRef<OrbitControlsImpl>(null);
 
   useEffect(() => {
     if (controlsRef.current) {
-      controlsRef.current.target.set(offsetX, 0, 0);
+      controlsRef.current.target.set(offsetX, offsetY, 0);
       controlsRef.current.update();
     }
-  }, [offsetX]);
+  }, [offsetX, offsetY]);
 
   return (
     <>
@@ -49,7 +50,7 @@ function GlobeScene({ nodes, points, autoRotate, config }: GlobeSceneProps) {
       <ambientLight intensity={1.2} />
       <directionalLight position={[5, 3, 4]} intensity={0.6} />
       <directionalLight position={[-4, -2, -3]} intensity={0.25} />
-      <group position={[offsetX, 0, 0]}>
+      <group position={[offsetX, offsetY, 0]}>
         <GlobeInstancedSpheres
           points={points}
           dotRadius={config.dotRadius}
@@ -143,9 +144,9 @@ export function GlobeCanvas({ nodes, className = "" }: GlobeCanvasProps) {
         <Canvas
           className="h-full w-full touch-none"
           camera={{ position: [0, config.cameraY, config.cameraZ], fov: config.fov, near: 0.1, far: 20 }}
-          dpr={[1, 2]}
+          dpr={[1, 1.75]}
           gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
-          style={{ width: "100%", height: "100%", display: "block", transform: "translateX(100px)" }}
+          style={{ width: "100%", height: "100%", display: "block" }}
         >
           <GlobeScene nodes={nodes} points={points} autoRotate={autoRotate} config={config} />
         </Canvas>

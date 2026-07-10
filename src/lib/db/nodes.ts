@@ -198,6 +198,11 @@ export async function registerNode(input: {
   }
 }
 
+export async function deleteNodeById(id: number): Promise<void> {
+  const pool = await getPool();
+  await pool.execute("DELETE FROM nodes WHERE id = :id", { id });
+}
+
 export async function countRegisteredNodes(): Promise<number> {
   const pool = await getPool();
   const [rows] = await pool.query<RowDataPacket[]>(

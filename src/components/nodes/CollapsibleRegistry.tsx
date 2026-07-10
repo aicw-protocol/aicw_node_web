@@ -10,6 +10,13 @@ interface CollapsibleRegistryProps {
 export function CollapsibleRegistry({ totalNodes }: CollapsibleRegistryProps) {
   const [open, setOpen] = useState(false);
 
+  const nodeCountLabel =
+    totalNodes === 0
+      ? "No nodes registered yet"
+      : totalNodes === 1
+        ? "1 node on the network"
+        : `${totalNodes} nodes on the network`;
+
   return (
     <section className="rounded-xl border border-surface-border bg-surface-panel/60">
       <button
@@ -19,10 +26,8 @@ export function CollapsibleRegistry({ totalNodes }: CollapsibleRegistryProps) {
         aria-expanded={open}
       >
         <div>
-          <h2 className="text-lg font-medium text-content-primary">Full registry</h2>
-          <p className="mt-1 text-sm text-content-secondary">
-            {totalNodes} node{totalNodes === 1 ? "" : "s"} in the database
-          </p>
+          <h2 className="text-lg font-medium text-content-primary">All registered nodes</h2>
+          <p className="mt-1 text-sm text-content-secondary">{nodeCountLabel}</p>
         </div>
         <span className="flex items-center gap-2 text-sm text-content-secondary">
           {open ? "Hide" : "Show"}

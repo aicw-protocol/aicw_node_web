@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AppLayout } from "@/components/PageShell";
 import { TableOfContents } from "@/components/guide/TableOfContents";
+import { GuideStartCommands } from "@/components/guide/GuideStartCommands";
+import { GuideFileLayout } from "@/components/guide/GuideFileLayout";
+import { RELEASE_BINARIES } from "@/lib/detectOS";
+import { PAGE_CONTAINER } from "@/lib/layout";
 
 export const metadata: Metadata = {
   title: "How to Run a Node | AICW Node Network",
@@ -12,7 +16,7 @@ export const metadata: Metadata = {
 export default function GuidePage() {
   return (
     <AppLayout>
-      <div className="mx-auto max-w-page px-4 py-6 sm:px-6 sm:py-8 lg:py-10">
+      <div className={`${PAGE_CONTAINER} py-6 sm:py-8 lg:py-10`}>
         <div className="lg:grid lg:grid-cols-[1fr_220px] lg:gap-10">
           {/* Main content */}
           <div className="min-w-0">
@@ -23,7 +27,7 @@ export default function GuidePage() {
       </p>
 
 
-      <section id="overview" className="mt-12">
+      <section id="overview" className="scroll-mt-6 mt-12">
         <h2 className="text-2xl font-semibold text-content-primary">
           Overview — What is a node?
         </h2>
@@ -56,7 +60,7 @@ export default function GuidePage() {
         </div>
       </section>
 
-      <section id="requirements" className="mt-12">
+      <section id="requirements" className="scroll-mt-6 mt-12">
         <h2 className="text-2xl font-semibold text-content-primary">Requirements</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div className="rounded-lg border border-surface-border bg-surface-panel p-4">
@@ -98,7 +102,7 @@ export default function GuidePage() {
         </div>
       </section>
 
-      <section id="quick-start" className="mt-12">
+      <section id="quick-start" className="scroll-mt-6 mt-12">
         <h2 className="text-2xl font-semibold text-content-primary">Quick Start</h2>
         <p className="mt-4 text-content-secondary">
           The fastest way to get started. Follow these steps in order.
@@ -162,17 +166,10 @@ export default function GuidePage() {
                 <p className="mt-1 text-sm text-content-secondary">
                   Create a folder for your node. Put the program and config files
                   in it. Put your identity files in an "identity" subfolder.
+                  Use the release binary that matches your OS (see file names
+                  below).
                 </p>
-                <div className="mt-3 rounded bg-gray-900 p-3 font-mono text-sm text-content-secondary">
-                  <p>my-node/</p>
-                  <p className="ml-4">├── aicw-node (or .exe on Windows)</p>
-                  <p className="ml-4">├── operator-config.yaml</p>
-                  <p className="ml-4">├── network-config.yaml</p>
-                  <p className="ml-4">├── password.txt</p>
-                  <p className="ml-4">└── identity/</p>
-                  <p className="ml-8">├── yourname_identity.json</p>
-                  <p className="ml-8">└── yourname_private_key.txt</p>
-                </div>
+                <GuideFileLayout />
               </div>
             </div>
           </li>
@@ -186,13 +183,10 @@ export default function GuidePage() {
                 <h3 className="font-medium text-content-primary">Run the command</h3>
                 <p className="mt-1 text-sm text-content-secondary">
                   Open a terminal, navigate to your folder, and run the start
-                  command. Keep the window open — your node is now running!
+                  command for your operating system. Keep the window open — your
+                  node is now running!
                 </p>
-                <div className="mt-3 rounded bg-gray-900 p-3 font-mono text-sm text-emerald-300">
-                  ./aicw-node start --name yourname --network-config
-                  network-config.yaml --config operator-config.yaml --identity-dir
-                  ./identity -f password.txt
-                </div>
+                <GuideStartCommands />
               </div>
             </div>
           </li>
@@ -214,7 +208,7 @@ export default function GuidePage() {
         </ol>
       </section>
 
-      <section id="detailed-steps" className="mt-12">
+      <section id="detailed-steps" className="scroll-mt-6 mt-12">
         <h2 className="text-2xl font-semibold text-content-primary">Detailed Steps</h2>
 
         <div className="mt-6 space-y-8">
@@ -299,10 +293,13 @@ export default function GuidePage() {
             </h3>
             <p className="mt-2 text-content-secondary">
               On Mac and Linux, you need to mark the program as executable before
-              you can run it.
+              you can run it. Use the exact filename you downloaded from GitHub
+              Releases.
             </p>
-            <div className="mt-3 rounded bg-gray-900 p-3 font-mono text-sm text-content-secondary">
-              chmod +x aicw-node
+            <div className="mt-3 space-y-2 rounded bg-gray-900 p-3 font-mono text-sm text-content-secondary">
+              <p>chmod +x {RELEASE_BINARIES.linux}</p>
+              <p>chmod +x {RELEASE_BINARIES.macosIntel}</p>
+              <p>chmod +x {RELEASE_BINARIES.macosAppleSilicon}</p>
             </div>
             <p className="mt-2 text-sm text-content-secondary">
               Run this command once in your node folder, then you can start the
@@ -312,7 +309,7 @@ export default function GuidePage() {
         </div>
       </section>
 
-      <section id="troubleshooting" className="mt-12">
+      <section id="troubleshooting" className="scroll-mt-6 mt-12">
         <h2 className="text-2xl font-semibold text-content-primary">Troubleshooting</h2>
         <p className="mt-4 text-content-secondary">
           Common problems and how to fix them.
@@ -356,9 +353,9 @@ export default function GuidePage() {
               "Permission denied" error
             </summary>
             <div className="border-t border-surface-border p-4 text-sm text-content-secondary">
-              <p>On Mac/Linux, run:</p>
+              <p>On Mac/Linux, run chmod on the binary you downloaded, for example:</p>
               <code className="mt-2 block rounded bg-gray-900 p-2">
-                chmod +x aicw-node
+                chmod +x {RELEASE_BINARIES.linux}
               </code>
               <p className="mt-2">Then try starting the node again.</p>
             </div>
@@ -435,7 +432,7 @@ export default function GuidePage() {
         </div>
       </section>
 
-      <section id="faq" className="mt-12">
+      <section id="faq" className="scroll-mt-6 mt-12">
         <h2 className="text-2xl font-semibold text-content-primary">
           Frequently Asked Questions
         </h2>

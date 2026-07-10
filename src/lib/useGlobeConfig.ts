@@ -15,6 +15,7 @@ export interface GlobeVisualConfig {
   cameraY: number;
   fov: number;
   globeOffsetX: number;
+  globeOffsetY: number;
 }
 
 type ViewportTier = "sm" | "md" | "lg";
@@ -47,9 +48,11 @@ function tierSettings(tier: ViewportTier) {
         lonStep: 2.0,
         dotRadius: 0.00375,
         markerRadius: 0.014,
-        cameraZ: 2.85,
-        cameraY: 0.06,
-        fov: 54,
+        cameraZ: 3.45,
+        cameraY: -0.05,
+        fov: 46,
+        globeOffsetX: 0,
+        globeOffsetY: 0.22,
       };
     case "md":
       return {
@@ -57,9 +60,11 @@ function tierSettings(tier: ViewportTier) {
         lonStep: 1.5,
         dotRadius: 0.00325,
         markerRadius: 0.012,
-        cameraZ: 2.5,
-        cameraY: 0.1,
+        cameraZ: 2.85,
+        cameraY: 0.06,
         fov: 50,
+        globeOffsetX: 0.28,
+        globeOffsetY: 0.08,
       };
     default:
       return {
@@ -70,6 +75,8 @@ function tierSettings(tier: ViewportTier) {
         cameraZ: 2.15,
         cameraY: 0.14,
         fov: 46,
+        globeOffsetX: 0.7,
+        globeOffsetY: 0,
       };
   }
 }
@@ -78,6 +85,14 @@ function adjustForAspect(
   config: Pick<GlobeVisualConfig, "cameraZ" | "fov">,
   aspect: number,
 ): Pick<GlobeVisualConfig, "cameraZ" | "fov"> {
+  if (aspect < 0.95) {
+    const tallFactor = 0.95 / aspect - 1;
+    return {
+      cameraZ: config.cameraZ * (1 + tallFactor * 0.42),
+      fov: Math.max(40, config.fov - tallFactor * 5),
+    };
+  }
+
   if (aspect <= 1.15) {
     return config;
   }
@@ -89,8 +104,6 @@ function adjustForAspect(
   };
 }
 
-const GLOBE_OFFSET_3D = 0.7;
-
 export function buildGlobeConfig(
   theme: Theme,
   width: number,
@@ -98,12 +111,18 @@ export function buildGlobeConfig(
 ): GlobeVisualConfig {
   const tier = getViewportTier(width);
   const base = { ...themeColors(theme), ...tierSettings(tier) };
+  const safeAspect = aspect > 0.2 ? aspect : getViewportTier(width) === "sm" ? 0.56 : 1.6;
   const camera = adjustForAspect(
     { cameraZ: base.cameraZ, fov: base.fov },
-    aspect,
+    safeAspect,
   );
 
-  return { ...base, ...camera, globeOffsetX: GLOBE_OFFSET_3D };
+  return {
+    ...base,
+    ...camera,
+    globeOffsetX: base.globeOffsetX,
+    globeOffsetY: base.globeOffsetY,
+  };
 }
 
 export function useGlobeConfig(theme: Theme, containerWidth: number, containerHeight: number) {

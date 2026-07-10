@@ -26,7 +26,8 @@ const config: Config = {
         logo: ["var(--font-logo)", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       maxWidth: {
-        page: "56rem",
+        /** Readable width for hero copy overlays (not the main page column). */
+        page: "72rem",
       },
     },
   },

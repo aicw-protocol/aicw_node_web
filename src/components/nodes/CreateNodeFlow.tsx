@@ -14,6 +14,7 @@ import { formatStakeSol, lamportsFromSol, meetsMinimumStake } from "@/lib/stakin
 import { generateNodeIdentity, validateNodeName } from "@/lib/nodeIdentity";
 import type { NodeIdentityFiles } from "@/lib/nodeIdentity";
 import { downloadNodeBundle, buildOperatorConfigYaml } from "@/lib/nodeOnboarding";
+import { saveLastNodeName } from "@/lib/lastNodeName";
 import type { OnboardingConfig } from "@/lib/onboardingConfig";
 import type { StakingRecord } from "@/lib/db/types";
 import { OnboardingWizard } from "./OnboardingWizard";
@@ -218,6 +219,7 @@ export function CreateNodeFlow({
       });
 
       downloadNodeBundle(identity, operatorYaml);
+      saveLastNodeName(identity.nodeName);
 
       setCreatedIdentity(identity);
       setStep("wizard");

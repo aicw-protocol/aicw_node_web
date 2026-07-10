@@ -1,4 +1,5 @@
 import type { NodeIdentityFiles } from "./nodeIdentity";
+import { getStartCommand, type OperatingSystem } from "./detectOS";
 
 export interface OperatorConfigInput {
   nodeWebUrl: string;
@@ -33,14 +34,11 @@ ${urlLine}
 }
 
 /** Shell command to start the node with downloaded files. */
-export function buildStartCommand(nodeName: string): string {
-  return [
-    `aicw-node start --name ${nodeName}`,
-    "--network-config network-config.yaml",
-    "--config operator-config.yaml",
-    "--identity-dir ./identity",
-    "-f password.txt",
-  ].join(" ");
+export function buildStartCommand(
+  nodeName: string,
+  os: OperatingSystem = "linux",
+): string {
+  return getStartCommand(os, nodeName);
 }
 
 export function downloadTextFile(filename: string, content: string): void {

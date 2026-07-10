@@ -7,6 +7,7 @@ import {
   detectOS,
   getOSLabel,
   getBinaryName,
+  getStartCommand,
   getTerminalInstructions,
   type OperatingSystem,
 } from "@/lib/detectOS";
@@ -137,7 +138,7 @@ export function OnboardingWizard({
   };
 
   const binaryName = getBinaryName(os);
-  const startCommand = `${binaryName} start --name ${identity.nodeName} --network-config network-config.yaml --config operator-config.yaml --identity-dir ./identity -f password.txt`;
+  const startCommand = getStartCommand(os, identity.nodeName);
 
   const renderProgressBar = () => (
     <div className="mb-8">
@@ -323,9 +324,9 @@ export function OnboardingWizard({
       </a>
 
       <p className="text-xs text-content-muted">
-        On the releases page, look for a file like{" "}
-        <code className="text-content-secondary">aicw-node-{getOSLabel(os).toLowerCase()}-amd64</code>{" "}
-        and download it.
+        On the releases page, download{" "}
+        <code className="text-content-secondary">{binaryName}</code> for your
+        system.
       </p>
     </div>
   );
@@ -489,13 +490,11 @@ export function OnboardingWizard({
         </h4>
         <div className="mt-2 flex items-center gap-2">
           <code className="flex-1 overflow-x-auto rounded bg-gray-900 px-3 py-2 text-sm text-emerald-300">
-            {os === "windows" ? ".\\" : "./"}{startCommand}
+            {startCommand}
           </code>
           <button
             type="button"
-            onClick={() =>
-              copyToClipboard(`${os === "windows" ? ".\\" : "./"}${startCommand}`)
-            }
+            onClick={() => copyToClipboard(startCommand)}
             className="shrink-0 rounded border border-accent px-3 py-2 text-sm text-accent hover:bg-accent hover:text-white"
           >
             <i className="fa-regular fa-copy mr-1" aria-hidden />

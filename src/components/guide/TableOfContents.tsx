@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { findScrollContainer, scrollToSection } from "@/lib/scrollToSection";
 
-interface TocItem {
+export interface TocItem {
   id: string;
   label: string;
 }
 
-const TOC_ITEMS: TocItem[] = [
+export const GUIDE_TOC_ITEMS: TocItem[] = [
   { id: "overview", label: "Overview — What is a node?" },
   { id: "requirements", label: "Requirements" },
   { id: "quick-start", label: "Quick Start (5 minutes)" },
@@ -17,56 +18,66 @@ const TOC_ITEMS: TocItem[] = [
 ];
 
 export function TableOfContents() {
+  const navRef = useRef<HTMLElement>(null);
   const [activeId, setActiveId] = useState<string>("");
 
   useEffect(() => {
+    const sections = GUIDE_TOC_ITEMS.map((item) =>
+      document.getElementById(item.id),
+    ).filter(Boolean) as HTMLElement[];
+
+    if (sections.length === 0) return;
+
+    const scrollContainer =
+      findScrollContainer(sections[0]) ??
+      findScrollContainer(navRef.current ?? sections[0]);
+
     const observer = new IntersectionObserver(
       (entries) => {
         const visibleEntries = entries.filter((entry) => entry.isIntersecting);
-        if (visibleEntries.length > 0) {
-          const topEntry = visibleEntries.reduce((prev, curr) =>
-            prev.boundingClientRect.top < curr.boundingClientRect.top ? prev : curr
-          );
-          setActiveId(topEntry.target.id);
-        }
+        if (visibleEntries.length === 0) return;
+
+        const topEntry = visibleEntries.reduce((prev, curr) =>
+          prev.boundingClientRect.top < curr.boundingClientRect.top ? prev : curr,
+        );
+        setActiveId(topEntry.target.id);
       },
       {
-        rootMargin: "-80px 0px -60% 0px",
+        root: scrollContainer,
+        rootMargin: "-24px 0px -60% 0px",
         threshold: 0,
-      }
+      },
     );
 
-    const sections = TOC_ITEMS.map((item) => document.getElementById(item.id)).filter(
-      Boolean
-    ) as HTMLElement[];
-
     sections.forEach((section) => observer.observe(section));
+
+    const hash = window.location.hash.replace("#", "");
+    if (hash && GUIDE_TOC_ITEMS.some((item) => item.id === hash)) {
+      requestAnimationFrame(() => scrollToSection(hash));
+      setActiveId(hash);
+    }
 
     return () => {
       sections.forEach((section) => observer.unobserve(section));
     };
   }, []);
 
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
-    e.preventDefault();
-    const element = document.getElementById(id);
-    if (element) {
-      const offset = 80;
-      const top = element.getBoundingClientRect().top + window.scrollY - offset;
-      window.scrollTo({ top, behavior: "smooth" });
+  const handleClick = (event: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    event.preventDefault();
+    if (scrollToSection(id)) {
       setActiveId(id);
     }
   };
 
   return (
-    <nav className="sticky top-24">
+    <nav ref={navRef} aria-label="Guide sections" className="sticky top-6">
       <h2 className="text-sm font-medium text-content-secondary">On this page</h2>
       <ul className="mt-3 space-y-2 text-sm">
-        {TOC_ITEMS.map((item) => (
+        {GUIDE_TOC_ITEMS.map((item) => (
           <li key={item.id}>
             <a
               href={`#${item.id}`}
-              onClick={(e) => handleClick(e, item.id)}
+              onClick={(event) => handleClick(event, item.id)}
               className={`block border-l-2 pl-3 transition-colors ${
                 activeId === item.id
                   ? "border-accent text-accent"
