@@ -113,3 +113,47 @@ export async function addNodeToMembershipWhitelist(
 
   return { skipped: false, key };
 }
+
+/**
+ * Remove node membership from Consul KV when operator deletes registration.
+ */
+export async function removeNodeFromMembershipWhitelist(
+  nodeId: string,
+): Promise<{ skipped: boolean }> {
+  if (!isConsulWhitelistEnabled()) {
+    return { skipped: true };
+  }
+
+  const trimmedNodeId = nodeId?.trim();
+  if (!trimmedNodeId) {
+    throw new Error("nodeId is required for Consul membership whitelist removal");
+  }
+
+  const baseUrl = getConsulHttpAddr();
+  if (!baseUrl) {
+    throw new Error("Consul is not configured (CONSUL_HTTP_ADDR)");
+  }
+
+  const key = buildWhitelistKey(trimmedNodeId);
+  const headers: Record<string, string> = {};
+  const token = getConsulAclToken();
+  if (token) {
+    headers["X-Consul-Token"] = token;
+  }
+
+  const url = `${baseUrl}/v1/kv/${encodeURIComponent(key)}`;
+  const res = await fetch(url, {
+    method: "DELETE",
+    headers,
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(
+      `Consul whitelist delete failed (${res.status})${detail ? `: ${detail}` : ""}`,
+    );
+  }
+
+  return { skipped: false };
+}

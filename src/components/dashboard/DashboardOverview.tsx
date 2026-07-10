@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
+import toast from "react-hot-toast";
 import { truncateAddress } from "@/lib/formatWallet";
 import { formatStakeSol } from "@/lib/stakingCurve";
 import type { NodeRecord, StakingRecord } from "@/lib/db/types";
 import { isNodePingActive } from "@/lib/nodePing";
 import { CreateNodeFlow } from "@/components/nodes/CreateNodeFlow";
+import { DeleteNodeConfirmModal } from "@/components/dashboard/DeleteNodeConfirmModal";
 
 interface RegistrationEligibility {
   registeredNodeCount: number;
@@ -35,7 +37,7 @@ function formatDate(iso: string): string {
   }).format(new Date(iso));
 }
 
-function StatusBadge({
+function NodeStatus({
   status,
   lastPingAt,
 }: {
@@ -43,23 +45,24 @@ function StatusBadge({
   lastPingAt: string | null;
 }) {
   const pingActive = isNodePingActive(lastPingAt);
-  if (pingActive) {
-    return (
-      <span className="rounded-full border border-emerald-600/40 bg-emerald-500/10 px-2.5 py-0.5 text-xs text-emerald-700 dark:text-emerald-300">
-        Active
-      </span>
-    );
-  }
+  const label = pingActive
+    ? "Active"
+    : status === "registered"
+      ? "Registered"
+      : "Inactive";
 
-  const label = status === "registered" ? "Registered" : "Inactive";
   return (
-    <span
-      className={`rounded-full border px-2.5 py-0.5 text-xs ${
-        status === "registered"
-          ? "border-amber-600/40 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-          : "border-gray-500/40 bg-gray-500/10 text-content-secondary"
-      }`}
-    >
+    <span className="inline-flex items-center gap-1.5 text-xs text-content-muted">
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${
+          pingActive
+            ? "bg-emerald-500"
+            : status === "registered"
+              ? "bg-amber-400/80"
+              : "bg-content-muted/60"
+        }`}
+        aria-hidden
+      />
       {label}
     </span>
   );
@@ -69,6 +72,8 @@ export function DashboardOverview() {
   const { publicKey, connected } = useWallet();
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [data, setData] = useState<DashboardResponse | null>(null);
+  const [nodeToDelete, setNodeToDelete] = useState<NodeRecord | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadDashboard = useCallback(async () => {
     if (!connected || !publicKey) {
@@ -113,6 +118,56 @@ export function DashboardOverview() {
       window.removeEventListener("aicw-staking-updated", onUpdate);
     };
   }, [loadDashboard]);
+
+  const handleDeleteConfirm = async () => {
+    if (!nodeToDelete || !publicKey) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch(
+        `/api/nodes/${encodeURIComponent(nodeToDelete.nodeId)}?wallet=${encodeURIComponent(publicKey.toBase58())}`,
+        { method: "DELETE" },
+      );
+
+      const json = (await res.json()) as { error?: string };
+
+      if (!res.ok) {
+        toast.error(json.error ?? "Failed to delete node");
+        return;
+      }
+
+      setData((prev) => {
+        if (!prev) return prev;
+        const nodes = prev.nodes.filter((node) => node.id !== nodeToDelete.id);
+        const totals = nodes.reduce(
+          (acc, node) => ({
+            referralWalletOpens: acc.referralWalletOpens + node.referralWalletOpens,
+            rewardSol: acc.rewardSol + node.rewardSol,
+            rewardToken: acc.rewardToken + node.rewardToken,
+          }),
+          { referralWalletOpens: 0, rewardSol: 0, rewardToken: 0 },
+        );
+
+        return {
+          ...prev,
+          nodes,
+          totals,
+          eligibility: {
+            ...prev.eligibility,
+            registeredNodeCount: Math.max(0, prev.eligibility.registeredNodeCount - 1),
+          },
+        };
+      });
+
+      setNodeToDelete(null);
+      toast.success("Node removed from your dashboard");
+      window.dispatchEvent(new Event("aicw-node-registered"));
+    } catch {
+      toast.error("Delete request failed");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   if (loadState === "disconnected") {
     return (
@@ -219,7 +274,17 @@ export function DashboardOverview() {
                       Registered: {formatDate(node.createdAt)}
                     </p>
                   </div>
-                  <StatusBadge status={node.status} lastPingAt={node.lastPingAt} />
+                  <div className="flex shrink-0 items-center gap-3">
+                    <NodeStatus status={node.status} lastPingAt={node.lastPingAt} />
+                    <button
+                      type="button"
+                      onClick={() => setNodeToDelete(node)}
+                      className="text-xs text-content-muted transition hover:text-content-primary"
+                      aria-label={`Remove node ${node.nodeName ?? node.nodeId}`}
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -253,6 +318,18 @@ export function DashboardOverview() {
         activeStake={data.activeStake}
         onCreated={loadDashboard}
       />
+
+      {nodeToDelete ? (
+        <DeleteNodeConfirmModal
+          node={nodeToDelete}
+          open
+          deleting={deleting}
+          onCancel={() => {
+            if (!deleting) setNodeToDelete(null);
+          }}
+          onConfirm={handleDeleteConfirm}
+        />
+      ) : null}
     </div>
   );
 }

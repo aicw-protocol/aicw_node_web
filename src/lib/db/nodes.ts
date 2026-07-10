@@ -198,6 +198,30 @@ export async function deleteNodeById(id: number): Promise<void> {
   await pool.execute("DELETE FROM nodes WHERE id = :id", { id });
 }
 
+export async function deleteNodeByOwner(input: {
+  nodeId: string;
+  ownerWallet: string;
+}): Promise<boolean> {
+  const nodeIdError = validateNodeId(input.nodeId);
+  if (nodeIdError) throw new Error(nodeIdError);
+
+  const walletError = validateOwnerWallet(input.ownerWallet);
+  if (walletError) throw new Error(walletError);
+
+  const pool = await getPool();
+  const [result] = await pool.execute<ResultSetHeader>(
+    `DELETE FROM nodes
+     WHERE node_id = :nodeId
+       AND owner_wallet = :ownerWallet`,
+    {
+      nodeId: input.nodeId.trim(),
+      ownerWallet: input.ownerWallet.trim(),
+    },
+  );
+
+  return result.affectedRows > 0;
+}
+
 export async function countRegisteredNodes(): Promise<number> {
   const pool = await getPool();
   const [rows] = await pool.query<RowDataPacket[]>(
