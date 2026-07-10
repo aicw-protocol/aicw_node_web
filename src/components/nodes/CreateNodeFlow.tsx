@@ -40,28 +40,6 @@ interface CreateNodeFlowProps {
 
 type FlowStep = "form" | "creating" | "wizard";
 
-async function getOptionalGeolocation(): Promise<{
-  latitude: number;
-  longitude: number;
-} | null> {
-  if (typeof navigator === "undefined" || !navigator.geolocation) {
-    return null;
-  }
-
-  return new Promise((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        resolve({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        });
-      },
-      () => resolve(null),
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 },
-    );
-  });
-}
-
 export function CreateNodeFlow({
   eligibility = null,
   activeStake = null,
@@ -185,8 +163,6 @@ export function CreateNodeFlow({
         return;
       }
 
-      const geo = await getOptionalGeolocation();
-
       const res = await fetch("/api/nodes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -195,7 +171,6 @@ export function CreateNodeFlow({
           nodeName: identity.nodeName,
           publicKey: identity.publicKey,
           ownerWallet: publicKey.toBase58(),
-          ...(geo ? { latitude: geo.latitude, longitude: geo.longitude } : {}),
         }),
       });
 
@@ -334,7 +309,8 @@ export function CreateNodeFlow({
             </div>
             <p className="text-xs text-content-muted">
               <i className="fa-solid fa-location-dot mr-1.5" aria-hidden />
-              Allow location access when prompted to display your node on the map.
+              Your node appears on the global map after its first status ping
+              (location is inferred from its network IP).
             </p>
 
             <button

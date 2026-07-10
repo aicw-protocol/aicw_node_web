@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isDatabaseConfigured } from "@/lib/db/config";
 import { updateNodePing } from "@/lib/db/referral";
+import { resolvePingGeoFromRequest } from "@/lib/geo/resolvePingGeo";
 
 interface PingRequest {
   nodeId: string;
@@ -10,6 +11,7 @@ interface PingRequest {
  * POST /api/nodes/ping
  * 
  * Update a node's last-ping timestamp to signal it is alive.
+ * Also records approximate map location from the request IP (GeoIP).
  * Nodes should call this periodically (every 1-2 minutes).
  * 
  * Request body:
@@ -45,7 +47,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const updated = await updateNodePing(nodeId.trim());
+    const geo = await resolvePingGeoFromRequest(request);
+    const updated = await updateNodePing(nodeId.trim(), geo);
 
     if (!updated) {
       return NextResponse.json({
@@ -58,6 +61,7 @@ export async function POST(request: NextRequest) {
       success: true,
       nodeId: nodeId.trim(),
       timestamp: new Date().toISOString(),
+      locationUpdated: geo !== null,
     });
   } catch (error) {
     console.error("[nodes/ping] Error:", error);

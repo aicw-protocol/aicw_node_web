@@ -42,8 +42,6 @@ export async function POST(request: Request) {
     publicKey?: string;
     privateKey?: string;
     ownerWallet?: string;
-    latitude?: number;
-    longitude?: number;
   };
   try {
     body = await request.json();
@@ -87,8 +85,6 @@ export async function POST(request: Request) {
       nodeName,
       publicKey,
       ownerWallet,
-      latitude: body.latitude,
-      longitude: body.longitude,
     });
 
     try {

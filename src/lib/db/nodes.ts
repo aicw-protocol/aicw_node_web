@@ -134,8 +134,6 @@ export async function registerNode(input: {
   nodeId: string;
   nodeName?: string | null;
   publicKey?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
 }): Promise<NodeRecord> {
   const nodeIdError = validateNodeId(input.nodeId);
   if (nodeIdError) throw new Error(nodeIdError);
@@ -153,9 +151,6 @@ export async function registerNode(input: {
     if (pkError) throw new Error(pkError);
   }
 
-  const geoError = validateGeo(input.latitude, input.longitude);
-  if (geoError) throw new Error(geoError);
-
   const pool = await getPool();
   const nodeId = input.nodeId.trim();
   const nodeName = input.nodeName?.trim() || null;
@@ -170,8 +165,8 @@ export async function registerNode(input: {
         nodeId,
         nodeName,
         publicKey,
-        latitude: input.latitude ?? null,
-        longitude: input.longitude ?? null,
+        latitude: null,
+        longitude: null,
       },
     );
 

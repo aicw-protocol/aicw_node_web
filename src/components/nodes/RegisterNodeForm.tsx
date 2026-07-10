@@ -20,28 +20,6 @@ interface RegisterNodeFormProps {
   onRegistered?: () => void;
 }
 
-async function getOptionalGeolocation(): Promise<{
-  latitude: number;
-  longitude: number;
-} | null> {
-  if (typeof navigator === "undefined" || !navigator.geolocation) {
-    return null;
-  }
-
-  return new Promise((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        resolve({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        });
-      },
-      () => resolve(null),
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 },
-    );
-  });
-}
-
 export function RegisterNodeForm({
   eligibility = null,
   activeStake = null,
@@ -69,15 +47,12 @@ export function RegisterNodeForm({
 
     setSubmitting(true);
     try {
-      const geo = await getOptionalGeolocation();
-
       const res = await fetch("/api/nodes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nodeId: nodeId.trim(),
           ownerWallet: publicKey.toBase58(),
-          ...(geo ? { latitude: geo.latitude, longitude: geo.longitude } : {}),
         }),
       });
 
@@ -88,11 +63,7 @@ export function RegisterNodeForm({
         return;
       }
 
-      toast.success(
-        geo
-          ? `Node registered with map location: ${json.node?.nodeId ?? nodeId}`
-          : `Node registered: ${json.node?.nodeId ?? nodeId}`,
-      );
+      toast.success(`Node registered: ${json.node?.nodeId ?? nodeId}`);
       setNodeId("");
       window.dispatchEvent(new Event("aicw-node-registered"));
       onRegistered?.();
@@ -108,8 +79,8 @@ export function RegisterNodeForm({
       <h2 className="text-lg font-medium text-content-primary">Register a node</h2>
       <p className="mt-2 text-sm text-content-secondary">
         Register the <code className="text-content-secondary">node_id</code> from your{" "}
-        <code className="text-content-secondary">aicw-node init</code> output. Your browser
-        may ask for location so the node appears on the global map.
+        <code className="text-content-secondary">aicw-node init</code> output. Map
+        location is set automatically when the node sends its first ping.
       </p>
 
       {!connected ? (

@@ -144,13 +144,39 @@ export async function countActiveNodes(): Promise<number> {
   return Number(fallbackRows[0]?.total ?? 0);
 }
 
+export interface NodePingGeo {
+  latitude: number;
+  longitude: number;
+}
+
 /**
- * Update a node's last-ping timestamp.
+ * Update a node's last-ping timestamp (and optional GeoIP location).
  * Called by nodes to signal they are alive.
  */
-export async function updateNodePing(nodeId: string): Promise<boolean> {
+export async function updateNodePing(
+  nodeId: string,
+  geo?: NodePingGeo | null,
+): Promise<boolean> {
   const pool = await getPool();
-  
+
+  if (geo) {
+    const [result] = await pool.execute<ResultSetHeader>(
+      `UPDATE nodes
+       SET last_ping_at = UTC_TIMESTAMP(),
+           latitude = :latitude,
+           longitude = :longitude
+       WHERE node_id = :nodeId
+         AND status = 'registered'`,
+      {
+        nodeId,
+        latitude: geo.latitude,
+        longitude: geo.longitude,
+      },
+    );
+
+    return result.affectedRows > 0;
+  }
+
   const [result] = await pool.execute<ResultSetHeader>(
     `UPDATE nodes
      SET last_ping_at = UTC_TIMESTAMP()

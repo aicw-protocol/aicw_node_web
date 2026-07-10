@@ -490,7 +490,8 @@ export default function GuidePage() {
             <div className="border-t border-surface-border p-4 text-sm text-content-secondary">
               Very little. The node sends a small status ping every 90 seconds and
               only does real work when a wallet is being created through it. Most
-              of the time it's idle.
+              of the time it's idle. Each ping also updates your node's approximate
+              location on the global map (from its network IP).
             </div>
           </details>
         </div>
