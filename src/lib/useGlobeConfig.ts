@@ -48,11 +48,11 @@ function tierSettings(tier: ViewportTier) {
         lonStep: 2.0,
         dotRadius: 0.00375,
         markerRadius: 0.014,
-        cameraZ: 3.45,
-        cameraY: -0.05,
-        fov: 46,
+        cameraZ: 3.75,
+        cameraY: -0.04,
+        fov: 43,
         globeOffsetX: 0,
-        globeOffsetY: 0.22,
+        globeOffsetY: 0.18,
       };
     case "md":
       return {
@@ -88,8 +88,8 @@ function adjustForAspect(
   if (aspect < 0.95) {
     const tallFactor = 0.95 / aspect - 1;
     return {
-      cameraZ: config.cameraZ * (1 + tallFactor * 0.42),
-      fov: Math.max(40, config.fov - tallFactor * 5),
+      cameraZ: config.cameraZ * (1 + tallFactor * 0.48),
+      fov: Math.max(39, config.fov - tallFactor * 5.5),
     };
   }
 
