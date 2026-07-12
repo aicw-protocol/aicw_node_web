@@ -46,8 +46,8 @@ export function NodesHero() {
   const showGlobe = state === "ready" || state === "loading";
 
   return (
-    <section className="relative h-[min(78vh,720px)] min-h-[440px] w-full overflow-hidden border-b border-surface-border bg-[var(--color-hero-bg)] sm:min-h-[500px] sm:h-[min(84vh,780px)] lg:min-h-[520px] lg:h-[min(88vh,820px)]">
-      <div className="absolute inset-x-0 top-0 z-0 h-[58%] sm:h-[62%] lg:inset-0 lg:h-full">
+    <section className="relative h-[min(78vh,720px)] min-h-[440px] w-full select-none overflow-hidden border-b border-surface-border bg-[var(--color-hero-bg)] sm:min-h-[500px] sm:h-[min(84vh,780px)] lg:min-h-[520px] lg:h-[min(88vh,820px)]">
+      <div className="absolute inset-0 z-0 h-full">
         {showGlobe ? (
           <GlobeWorldMap nodes={nodes} className="h-full w-full" />
         ) : (
@@ -61,8 +61,8 @@ export function NodesHero() {
       <div className="pointer-events-none absolute inset-0 z-[1] hidden bg-gradient-to-r from-[var(--color-hero-gradient)] via-[var(--color-hero-gradient)]/88 to-transparent lg:block lg:max-w-[52%]" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[62%] bg-gradient-to-t from-[var(--color-hero-gradient)] via-[var(--color-hero-gradient)]/70 to-transparent sm:h-[58%] lg:hidden" />
 
-      <div className="relative z-10 flex h-full flex-col justify-end px-4 pb-7 pt-20 sm:px-8 sm:pb-10 lg:max-w-[44%] lg:px-12 lg:pb-12 lg:pt-28">
-        <div className="pointer-events-none w-full max-w-page">
+      <div className="pointer-events-none relative z-10 flex h-full flex-col justify-end px-4 pb-7 pt-20 sm:px-8 sm:pb-10 lg:max-w-[44%] lg:px-12 lg:pb-12 lg:pt-28">
+        <div className="w-full max-w-page">
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-accent">
             Global Network
           </p>

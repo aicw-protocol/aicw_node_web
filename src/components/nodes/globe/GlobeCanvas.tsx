@@ -137,12 +137,12 @@ export function GlobeCanvas({ nodes, className = "" }: GlobeCanvasProps) {
   return (
     <div
       ref={containerRef}
-      className={`relative h-full min-h-[260px] w-full overflow-hidden ${className}`}
+      className={`relative h-full min-h-[260px] w-full cursor-grab overflow-hidden active:cursor-grabbing ${className}`}
       style={{ backgroundColor: config.background }}
     >
       {ready ? (
         <Canvas
-          className="h-full w-full touch-none"
+          className="h-full w-full touch-none cursor-grab active:cursor-grabbing"
           camera={{ position: [0, config.cameraY, config.cameraZ], fov: config.fov, near: 0.1, far: 20 }}
           dpr={[1, 1.75]}
           gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
