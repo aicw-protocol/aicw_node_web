@@ -4,6 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { truncateAddress } from "@/lib/formatWallet";
 import type { NodeListResponse, NodeRecord } from "@/lib/db/types";
+import {
+  getNodeConnectivityStatus,
+  type NodeConnectivityStatus,
+} from "@/lib/nodePing";
 import { CopyIconButton } from "@/components/CopyIconButton";
 
 type LoadState = "loading" | "ready" | "error" | "unconfigured";
@@ -15,23 +19,33 @@ function formatDate(iso: string): string {
   }).format(new Date(iso));
 }
 
-function StatusBadge({ status }: { status: NodeRecord["status"] }) {
-  const label = status === "registered" ? "Registered" : "Inactive";
-  const isRegistered = status === "registered";
+const STATUS_DOT_CLASS: Record<NodeConnectivityStatus, string> = {
+  registered: "bg-content-muted",
+  connecting: "bg-amber-400",
+  active: "bg-emerald-500",
+};
+
+const STATUS_ARIA_LABEL: Record<NodeConnectivityStatus, string> = {
+  registered: "Registered",
+  connecting: "Connecting",
+  active: "Active",
+};
+
+function StatusDot({
+  status,
+  lastPingAt,
+}: {
+  status: NodeRecord["status"];
+  lastPingAt: string | null;
+}) {
+  const connectivity = getNodeConnectivityStatus(status, lastPingAt);
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 text-xs ${
-        isRegistered ? "text-emerald-600 dark:text-emerald-400" : "text-content-muted"
-      }`}
-    >
-      <span
-        className={`h-1.5 w-1.5 rounded-full ${
-          isRegistered ? "bg-emerald-500" : "bg-content-muted"
-        }`}
-      />
-      {label}
-    </span>
+      className={`inline-block h-[6px] w-[6px] rounded-full ${STATUS_DOT_CLASS[connectivity]}`}
+      aria-label={STATUS_ARIA_LABEL[connectivity]}
+      title={STATUS_ARIA_LABEL[connectivity]}
+    />
   );
 }
 
@@ -157,7 +171,9 @@ export function NodesOverview({ hideStats = false }: { hideStats?: boolean }) {
                   Node ID
                 </th>
                 <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide">Owner</th>
-                <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide">Status</th>
+                <th className="px-4 py-2.5 text-center text-xs font-medium uppercase tracking-wide">
+                  Status
+                </th>
                 <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide">
                   Registered
                 </th>
@@ -198,8 +214,8 @@ export function NodesOverview({ hideStats = false }: { hideStats?: boolean }) {
                   >
                     {truncateAddress(node.ownerWallet)}
                   </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={node.status} />
+                  <td className="px-4 py-3 text-center">
+                    <StatusDot status={node.status} lastPingAt={node.lastPingAt} />
                   </td>
                   <td className="px-4 py-3 text-content-muted">
                     {formatDate(node.createdAt)}

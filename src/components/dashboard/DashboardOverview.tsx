@@ -7,6 +7,7 @@ import { truncateAddress } from "@/lib/formatWallet";
 import { formatStakeSol } from "@/lib/stakingCurve";
 import type { NodeRecord, StakingRecord } from "@/lib/db/types";
 import { isNodePingActive } from "@/lib/nodePing";
+import { WalletButton } from "@/components/WalletButton";
 import { CreateNodeFlow } from "@/components/nodes/CreateNodeFlow";
 import { DeleteNodeConfirmModal } from "@/components/dashboard/DeleteNodeConfirmModal";
 
@@ -171,9 +172,13 @@ export function DashboardOverview() {
 
   if (loadState === "disconnected") {
     return (
-      <div className="rounded-xl border border-surface-border bg-surface-panel p-8 text-center text-sm text-content-secondary">
-        <i className="fa-solid fa-wallet mr-2 text-accent" aria-hidden />
-        Connect your wallet to view your dashboard and register a node.
+      <div className="rounded-xl border border-surface-border bg-surface-panel p-8 text-sm text-content-secondary">
+        <div className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:items-center">
+          <WalletButton layout="default" />
+          <p className="text-center text-content-secondary sm:text-left">
+            Connect your wallet to view your dashboard and register a node.
+          </p>
+        </div>
       </div>
     );
   }

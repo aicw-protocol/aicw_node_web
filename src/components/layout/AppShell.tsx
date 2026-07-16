@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { WalletButton } from "@/components/WalletButton";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 const NAV_ITEMS = [
   { href: "/nodes", label: "Nodes", icon: "fa-globe" },
@@ -115,11 +114,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           <SidebarNav pathname={pathname} onNavigate={closeSidebar} />
         </div>
 
-        <div className="space-y-2 border-t border-surface-border p-3">
-          <ThemeToggle />
-          <div className="hidden lg:block">
-            <WalletButton layout="sidebar" />
-          </div>
+        <div className="border-t border-surface-border px-14 py-6">
+          <WalletButton layout="sidebar" />
         </div>
       </aside>
 

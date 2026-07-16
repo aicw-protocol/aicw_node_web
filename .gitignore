@@ -38,6 +38,7 @@ next-env.d.ts
 npm-debug.log*
 .DS_Store
 Thumbs.db
+node.json
 
 # Editor (local only)
 .vscode/
