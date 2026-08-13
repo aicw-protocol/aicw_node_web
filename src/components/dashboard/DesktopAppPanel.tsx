@@ -28,9 +28,9 @@ export function DesktopAppPanel({
   eligibility,
   activeStake = null,
 }: DesktopAppPanelProps) {
-  const [releasesUrl, setReleasesUrl] = useState(GITHUB_RELEASES_URL);
-  const [guiName, setGuiName] = useState(RELEASE_GUI_ARTIFACTS.linux);
-  const [osLabel, setOsLabel] = useState("your OS");
+  const [releasesUrl, setReleasesUrl] = useState<string>(GITHUB_RELEASES_URL);
+  const [guiName, setGuiName] = useState<string>(RELEASE_GUI_ARTIFACTS.linux);
+  const [osLabel, setOsLabel] = useState<string>("your OS");
 
   useEffect(() => {
     const os = detectOS();
