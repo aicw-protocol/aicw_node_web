@@ -76,19 +76,19 @@ export function GuideDesktopDownload({
         ) : os === "linux" ? (
           <>
             <li>
-              Make it executable:{" "}
-              <code className="text-content-primary">chmod +x {guiName}</code>
+              Unzip the download, then:{" "}
+              <code className="text-content-primary">chmod +x {guiName.replace(".zip", "")} aicw-node-linux-amd64</code>
             </li>
-            <li>Run the app and accept the license.</li>
+            <li>Run the setup app and accept the license.</li>
           </>
         ) : (
           <>
-            <li>Run the installer and accept the license.</li>
             <li>
-              Choose an install folder (default:{" "}
-              <code className="text-content-primary">{installPath}</code>
-              ).
+              Unzip the download so{" "}
+              <code className="text-content-primary">aicw-node-setup-windows-amd64.exe</code> and{" "}
+              <code className="text-content-primary">aicw-node.exe</code> are in the same folder.
             </li>
+            <li>Run the setup app and accept the license.</li>
           </>
         )}
         <li>
