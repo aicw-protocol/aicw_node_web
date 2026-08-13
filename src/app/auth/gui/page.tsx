@@ -3,6 +3,9 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
+import type { Adapter } from "@solana/wallet-adapter-base";
+import { PublicKey } from "@solana/web3.js";
+import { SolanaSignMessage } from "@solana/wallet-standard-features";
 import { WalletButton } from "@/components/WalletButton";
 
 interface ChallengeResponse {
@@ -19,10 +22,73 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+function isStandardWalletAdapter(
+  adapter: Adapter,
+): adapter is Adapter & {
+  standard: true;
+  wallet: {
+    accounts: Array<{ address: string; publicKey: Uint8Array; features: string[] }>;
+    features: Record<
+      typeof SolanaSignMessage,
+      {
+        signMessage: (
+          input: { account: { address: string; publicKey: Uint8Array; features: string[] }; message: Uint8Array },
+        ) => Promise<Array<{ signature: Uint8Array; signedMessage: Uint8Array }>>;
+      }
+    >;
+  };
+} {
+  return "standard" in adapter && adapter.standard === true && "wallet" in adapter;
+}
+
+async function signGuiChallengeMessage(
+  adapter: Adapter | undefined,
+  publicKey: PublicKey,
+  signMessage: ((message: Uint8Array) => Promise<Uint8Array>) | undefined,
+  messageBytes: Uint8Array,
+): Promise<{ signature: Uint8Array; signedMessageBase64?: string }> {
+  if (adapter && isStandardWalletAdapter(adapter) && SolanaSignMessage in adapter.wallet.features) {
+    const accounts = adapter.wallet.accounts ?? [];
+    const account = accounts.find((entry) => {
+      if (!entry?.address) return false;
+      try {
+        return new PublicKey(entry.address).equals(publicKey);
+      } catch {
+        return false;
+      }
+    });
+    if (account) {
+      const outputs = await adapter.wallet.features[SolanaSignMessage].signMessage({
+        account,
+        message: messageBytes,
+      });
+      const output = outputs[0];
+      if (output?.signature && output?.signedMessage) {
+        return {
+          signature: output.signature,
+          signedMessageBase64: bytesToBase64(output.signedMessage),
+        };
+      }
+    }
+  }
+
+  if (!signMessage) {
+    throw new Error("This wallet does not support message signing.");
+  }
+
+  const signature = await signMessage(messageBytes);
+  return { signature };
+}
+
 function GuiAuthContent() {
   const searchParams = useSearchParams();
   const callback = searchParams.get("callback")?.trim() ?? "";
-  const { publicKey, connected, signMessage } = useWallet();
+  const purpose = searchParams.get("purpose")?.trim() === "register" ? "register" : "login";
+  const registerNodeId = searchParams.get("nodeId")?.trim() ?? "";
+  const registerNodeName = searchParams.get("nodeName")?.trim() ?? "";
+  const registerPublicKey = searchParams.get("publicKey")?.trim() ?? "";
+  const isRegister = purpose === "register";
+  const { publicKey, connected, signMessage, wallet: activeWallet } = useWallet();
   const [status, setStatus] = useState<string>("Connect your wallet to continue.");
   const [busy, setBusy] = useState(false);
 
@@ -37,9 +103,26 @@ function GuiAuthContent() {
       message: string;
       challengeToken: string;
       signatureBase64: string;
+      signedMessageBase64?: string;
     }) => {
+      if (isRegister) {
+        if (!callback) {
+          throw new Error("Registration sign-in requires a desktop callback URL.");
+        }
+        const url = new URL(callback);
+        url.searchParams.set("wallet", payload.wallet);
+        url.searchParams.set("message", payload.message);
+        url.searchParams.set("challengeToken", payload.challengeToken);
+        url.searchParams.set("signatureBase64", payload.signatureBase64);
+        if (payload.signedMessageBase64) {
+          url.searchParams.set("signedMessageBase64", payload.signedMessageBase64);
+        }
+        window.location.href = url.toString();
+        return;
+      }
+
       if (!callback) {
-        setStatus("Signed in successfully. You can return to the AICW Node app.");
+        window.location.assign("/dashboard");
         return;
       }
 
@@ -50,8 +133,14 @@ function GuiAuthContent() {
       });
 
       if (!verifyRes.ok) {
-        const json = (await verifyRes.json()) as { error?: string };
-        throw new Error(json.error ?? "Verification failed");
+        let errorMessage = "Verification failed";
+        try {
+          const json = (await verifyRes.json()) as { error?: string };
+          errorMessage = json.error ?? errorMessage;
+        } catch {
+          errorMessage = `Verification failed (${verifyRes.status})`;
+        }
+        throw new Error(errorMessage);
       }
 
       const url = new URL(callback);
@@ -59,9 +148,12 @@ function GuiAuthContent() {
       url.searchParams.set("message", payload.message);
       url.searchParams.set("challengeToken", payload.challengeToken);
       url.searchParams.set("signatureBase64", payload.signatureBase64);
+      if (payload.signedMessageBase64) {
+        url.searchParams.set("signedMessageBase64", payload.signedMessageBase64);
+      }
       window.location.href = url.toString();
     },
-    [callback],
+    [callback, isRegister],
   );
 
   const handleSignIn = useCallback(async () => {
@@ -69,41 +161,89 @@ function GuiAuthContent() {
       setStatus("Connect your wallet first.");
       return;
     }
-    if (!signMessage) {
+    if (isRegister && !registerNodeId) {
+      setStatus("Registration request is missing node ID.");
+      return;
+    }
+    if (!publicKey) {
+      setStatus("Connect your wallet first.");
+      return;
+    }
+
+    const adapter = activeWallet?.adapter;
+    const canSign =
+      !!signMessage ||
+      (adapter &&
+        isStandardWalletAdapter(adapter) &&
+        SolanaSignMessage in adapter.wallet.features);
+    if (!canSign) {
       setStatus("This wallet does not support message signing.");
       return;
     }
 
     setBusy(true);
-    setStatus("Preparing secure login challenge…");
+    setStatus(
+      isRegister
+        ? "Preparing secure node registration challenge…"
+        : "Preparing secure login challenge…",
+    );
 
     try {
-      const challengeRes = await fetch(
-        `/api/auth/challenge?wallet=${encodeURIComponent(wallet)}`,
-        { cache: "no-store" },
-      );
+      const challengeParams = new URLSearchParams({ wallet });
+      if (isRegister) {
+        challengeParams.set("purpose", "register");
+        challengeParams.set("nodeId", registerNodeId);
+        if (registerNodeName) challengeParams.set("nodeName", registerNodeName);
+        if (registerPublicKey) challengeParams.set("publicKey", registerPublicKey);
+      }
+
+      const challengeRes = await fetch(`/api/auth/challenge?${challengeParams.toString()}`, {
+        cache: "no-store",
+      });
       if (!challengeRes.ok) {
-        throw new Error("Failed to create login challenge");
+        throw new Error(
+          isRegister ? "Failed to create registration challenge" : "Failed to create login challenge",
+        );
       }
 
       const challenge = (await challengeRes.json()) as ChallengeResponse;
-      setStatus("Approve the sign-in request in your wallet…");
+      setStatus(
+        isRegister
+          ? "Approve the node registration request in your wallet…"
+          : "Approve the sign-in request in your wallet…",
+      );
 
       const messageBytes = new TextEncoder().encode(challenge.message);
-      const signature = await signMessage(messageBytes);
+      const signed = await signGuiChallengeMessage(
+        activeWallet?.adapter,
+        publicKey!,
+        signMessage,
+        messageBytes,
+      );
 
       await finishWithCallback({
         wallet: challenge.wallet,
         message: challenge.message,
         challengeToken: challenge.challengeToken,
-        signatureBase64: bytesToBase64(signature),
+        signatureBase64: bytesToBase64(signed.signature),
+        signedMessageBase64: signed.signedMessageBase64,
       });
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Sign-in failed");
     } finally {
       setBusy(false);
     }
-  }, [finishWithCallback, signMessage, wallet]);
+  }, [
+    activeWallet?.adapter,
+    finishWithCallback,
+    isRegister,
+    publicKey,
+    registerNodeId,
+    registerNodeName,
+    registerPublicKey,
+    signMessage,
+    wallet,
+  ]);
 
   useEffect(() => {
     if (connected && wallet) {
@@ -114,10 +254,13 @@ function GuiAuthContent() {
   return (
     <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-6 py-12">
       <div className="rounded-xl border border-surface-border bg-surface-panel p-8 shadow-sm">
-        <h1 className="text-xl font-semibold text-content-primary">AICW Node Desktop Sign-In</h1>
+        <h1 className="text-xl font-semibold text-content-primary">
+          {isRegister ? "AICW Node Desktop Registration" : "AICW Node Desktop Sign-In"}
+        </h1>
         <p className="mt-2 text-sm text-content-secondary">
-          Sign in with your Solana wallet to link the desktop app with your staking and node
-          registration on AICW Node Web.
+          {isRegister
+            ? "Sign with your Solana wallet to register this node for your desktop app. Your node private key stays on this computer."
+            : "Sign in with your Solana wallet to link the desktop app with your staking and node registration on AICW Node Web."}
         </p>
 
         <div className="mt-6 flex flex-col gap-4">
@@ -128,7 +271,7 @@ function GuiAuthContent() {
             disabled={!connected || busy}
             className="rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
           >
-            {busy ? "Signing in…" : "Sign in for Desktop App"}
+            {busy ? "Signing…" : isRegister ? "Sign to Register Node" : "Sign in for Desktop App"}
           </button>
         </div>
 
@@ -145,8 +288,8 @@ function GuiAuthContent() {
           <p>Recommended onboarding:</p>
           <ol className="list-decimal space-y-1 pl-5">
             <li>Stake on the Staking page if required.</li>
-            <li>Register your node on the Dashboard.</li>
-            <li>Return to the desktop app to start your node.</li>
+            <li>Install the AICW Node desktop app and sign in with your wallet.</li>
+            <li>Register and start your node from the desktop app.</li>
           </ol>
         </div>
       </div>

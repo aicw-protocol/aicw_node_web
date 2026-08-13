@@ -9,6 +9,7 @@ export async function POST(request: Request) {
     challengeToken?: string;
     wallet?: string;
     signatureBase64?: string;
+    signedMessageBase64?: string;
     message?: string;
   };
 
@@ -21,6 +22,7 @@ export async function POST(request: Request) {
   const challengeToken = body.challengeToken?.trim();
   const wallet = body.wallet?.trim();
   const signatureBase64 = body.signatureBase64?.trim();
+  const signedMessageBase64 = body.signedMessageBase64?.trim();
   const message = body.message;
 
   if (!challengeToken || !wallet || !signatureBase64 || !message) {
@@ -30,19 +32,28 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await verifyGuiWalletSignature({
-    challengeToken,
-    wallet,
-    signatureBase64,
-    message,
-  });
+  try {
+    const result = await verifyGuiWalletSignature({
+      challengeToken,
+      wallet,
+      signatureBase64,
+      signedMessageBase64,
+      message,
+    });
 
-  if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: 401 });
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 401 });
+    }
+
+    return NextResponse.json({
+      wallet: result.wallet,
+      verified: true,
+    });
+  } catch (error) {
+    console.error("POST /api/auth/verify failed:", error);
+    return NextResponse.json(
+      { error: "Wallet signature verification failed" },
+      { status: 500 },
+    );
   }
-
-  return NextResponse.json({
-    wallet: result.wallet,
-    verified: true,
-  });
 }

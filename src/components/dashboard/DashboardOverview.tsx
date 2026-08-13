@@ -8,8 +8,10 @@ import { formatStakeSol } from "@/lib/stakingCurve";
 import type { NodeRecord, StakingRecord } from "@/lib/db/types";
 import { isNodePingActive } from "@/lib/nodePing";
 import { WalletButton } from "@/components/WalletButton";
-import { CreateNodeFlow } from "@/components/nodes/CreateNodeFlow";
+import { DesktopAppPanel } from "@/components/dashboard/DesktopAppPanel";
 import { DeleteNodeConfirmModal } from "@/components/dashboard/DeleteNodeConfirmModal";
+import { OffboardWizard } from "@/components/dashboard/OffboardWizard";
+import { UNSTAKE_COOLDOWN_HOURS } from "@/lib/unstakeConstants";
 
 interface RegistrationEligibility {
   registeredNodeCount: number;
@@ -176,7 +178,7 @@ export function DashboardOverview() {
         <div className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:items-center">
           <WalletButton layout="default" />
           <p className="text-center text-content-secondary sm:text-left">
-            Connect your wallet to view your dashboard and register a node.
+            Connect your wallet to view your dashboard and node status.
           </p>
         </div>
       </div>
@@ -216,7 +218,11 @@ export function DashboardOverview() {
     );
   }
 
-  const walletLabel = publicKey ? truncateAddress(publicKey.toBase58()) : "";
+  if (!publicKey) {
+    return null;
+  }
+
+  const walletLabel = truncateAddress(publicKey.toBase58());
 
   return (
     <div className="space-y-8">
@@ -318,10 +324,15 @@ export function DashboardOverview() {
         )}
       </section>
 
-      <CreateNodeFlow
+      <DesktopAppPanel
         eligibility={data.eligibility}
         activeStake={data.activeStake}
-        onCreated={loadDashboard}
+      />
+
+      <OffboardWizard
+        wallet={publicKey.toBase58()}
+        nodes={data.nodes}
+        onUpdated={loadDashboard}
       />
 
       {nodeToDelete ? (

@@ -1,9 +1,12 @@
 /** Public onboarding configuration (safe for client). */
 
+import { NETWORK_CONFIG_TEMPLATE } from "@/lib/networkConfigTemplate";
+
 export interface OnboardingConfig {
   nodeWebUrl: string;
   pingIntervalSeconds: number;
   releasesUrl: string;
+  networkConfigYaml: string;
 }
 
 export function getOnboardingConfig(): OnboardingConfig {
@@ -21,9 +24,13 @@ export function getOnboardingConfig(): OnboardingConfig {
     ? Math.max(30, Number.parseInt(pingIntervalRaw, 10) || 90)
     : 90;
 
+  const networkConfigYaml =
+    process.env.ONBOARDING_NETWORK_CONFIG_YAML?.trim() || NETWORK_CONFIG_TEMPLATE;
+
   return {
     nodeWebUrl: nodeWebUrl.replace(/\/$/, ""),
     pingIntervalSeconds,
     releasesUrl,
+    networkConfigYaml,
   };
 }

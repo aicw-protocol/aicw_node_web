@@ -88,10 +88,10 @@ export function NodesHero() {
 
           <div className="pointer-events-auto mt-8 flex flex-wrap gap-3">
             <Link
-              href="/dashboard"
+              href="/guide#quick-start"
               className="inline-flex items-center rounded-lg bg-accent px-5 py-3 text-sm font-medium text-white shadow-lg shadow-accent/20 transition hover:bg-accent-muted"
             >
-              Register your node
+              Get desktop app
               <i className="fa-solid fa-arrow-right ml-2" aria-hidden />
             </Link>
             <Link

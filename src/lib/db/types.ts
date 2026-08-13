@@ -10,6 +10,12 @@ export interface StakingRecord {
   stakedAt: string;
   status: StakingStatus;
   txSignature: string | null;
+  unstakeRequestedAt: string | null;
+  returnAvailableAt: string | null;
+  returnedAt: string | null;
+  returnTxSignature: string | null;
+  lastInitiatedNodeId: string | null;
+  lastInitiatedNodeName: string | null;
 }
 
 export interface NodeRecord {

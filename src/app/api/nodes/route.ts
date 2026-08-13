@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { PublicKey } from "@solana/web3.js";
 import { isDatabaseConfigured } from "@/lib/db/config";
 import { listNodes, registerNode, deleteNodeById } from "@/lib/db/nodes";
 import { assertCanRegisterNode } from "@/lib/nodeEligibility";
 import { addNodeToMembershipWhitelist } from "@/lib/consul/membershipWhitelist";
 import { isConsulWhitelistEnabled } from "@/lib/consul/config";
+import { verifyNodeRegistrationSignature } from "@/lib/guiAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +42,11 @@ export async function POST(request: Request) {
     publicKey?: string;
     privateKey?: string;
     ownerWallet?: string;
+    challengeToken?: string;
+    wallet?: string;
+    signatureBase64?: string;
+    signedMessageBase64?: string;
+    message?: string;
   };
   try {
     body = await request.json();
@@ -59,11 +64,22 @@ export async function POST(request: Request) {
   const nodeId = body.nodeId?.trim();
   const nodeName = body.nodeName?.trim();
   const publicKey = body.publicKey?.trim();
-  const ownerWallet = body.ownerWallet?.trim();
+  const challengeToken = body.challengeToken?.trim();
+  const wallet = body.wallet?.trim();
+  const signatureBase64 = body.signatureBase64?.trim();
+  const signedMessageBase64 = body.signedMessageBase64?.trim();
+  const message = body.message;
 
-  if (!nodeId || !ownerWallet) {
+  if (!nodeId) {
+    return NextResponse.json({ error: "nodeId is required" }, { status: 400 });
+  }
+
+  if (!challengeToken || !wallet || !signatureBase64 || !message) {
     return NextResponse.json(
-      { error: "nodeId and ownerWallet are required" },
+      {
+        error:
+          "challengeToken, wallet, signatureBase64, and message are required to register a node",
+      },
       { status: 400 },
     );
   }
@@ -72,8 +88,41 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "publicKey is required when Consul auto-whitelist is enabled (Create node flow provides it automatically)",
+          "publicKey is required when Consul auto-whitelist is enabled",
       },
+      { status: 400 },
+    );
+  }
+
+  let ownerWallet: string;
+  try {
+    const verified = await verifyNodeRegistrationSignature({
+      challengeToken,
+      wallet,
+      signatureBase64,
+      signedMessageBase64,
+      message,
+      nodeId,
+      nodeName,
+      publicKey,
+    });
+
+    if (!verified.ok) {
+      return NextResponse.json({ error: verified.error }, { status: 401 });
+    }
+
+    ownerWallet = verified.wallet;
+  } catch (error) {
+    console.error("POST /api/nodes signature verification failed:", error);
+    return NextResponse.json(
+      { error: "Wallet signature verification failed" },
+      { status: 500 },
+    );
+  }
+
+  if (body.ownerWallet?.trim() && body.ownerWallet.trim() !== ownerWallet) {
+    return NextResponse.json(
+      { error: "ownerWallet does not match signed wallet" },
       { status: 400 },
     );
   }

@@ -13,6 +13,9 @@ out/
 order.md
 vps.md
 resistry.md
+docs/
+*.md
+!README.md
 
 # Node runtime configs (not part of this web app; may contain secrets)
 config.yaml

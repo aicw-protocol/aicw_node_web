@@ -7,7 +7,7 @@ import { meetsMinimumStake } from "@/lib/stakingCurve";
 
 export type GuiRecommendedAction =
   | "stake_on_web"
-  | "register_on_web"
+  | "register_in_app"
   | "setup_local"
   | "ready_to_run";
 
@@ -26,20 +26,20 @@ export interface GuiWalletStatus {
   };
 }
 
-function buildGuiUrls(baseUrl: string, wallet: string) {
+function buildGuiUrls(baseUrl: string, wallet: string, releasesUrl: string) {
   const encoded = encodeURIComponent(wallet);
   return {
     stakingUrl: `${baseUrl}/staking`,
     dashboardUrl: `${baseUrl}/dashboard?wallet=${encoded}`,
-    registerUrl: `${baseUrl}/dashboard?wallet=${encoded}`,
-    onboardingUrl: `${baseUrl}/dashboard?wallet=${encoded}`,
+    registerUrl: releasesUrl,
+    onboardingUrl: `${baseUrl}/guide#quick-start`,
   };
 }
 
 export async function getGuiWalletStatus(wallet: string): Promise<GuiWalletStatus> {
-  const { nodeWebUrl } = getOnboardingConfig();
+  const { nodeWebUrl, releasesUrl } = getOnboardingConfig();
   const baseUrl = nodeWebUrl || "https://node.aicw.ai";
-  const urls = buildGuiUrls(baseUrl, wallet);
+  const urls = buildGuiUrls(baseUrl, wallet, releasesUrl);
 
   const [eligibility, activeStake, nodes] = await Promise.all([
     getRegistrationEligibility(wallet),
@@ -56,7 +56,7 @@ export async function getGuiWalletStatus(wallet: string): Promise<GuiWalletStatu
   if (!hasStake) {
     recommendedAction = "stake_on_web";
   } else if (nodes.length === 0) {
-    recommendedAction = "register_on_web";
+    recommendedAction = "register_in_app";
   } else {
     recommendedAction = "setup_local";
   }

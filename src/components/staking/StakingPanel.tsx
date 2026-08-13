@@ -15,6 +15,7 @@ import {
   meetsMinimumStake,
 } from "@/lib/stakingCurve";
 import type { StakingRecord } from "@/lib/db/types";
+import { UNSTAKE_COOLDOWN_HOURS } from "@/lib/unstakeConstants";
 
 interface CurveResponse {
   registeredNodeCount: number;
@@ -163,7 +164,9 @@ export function StakingPanel() {
       if (!res.ok) {
         throw new Error(json.error ?? "Unstake request failed");
       }
-      toast.success("Unstake requested — manual return by admin");
+      toast.success(
+        `Unstake approved — SOL returns after ${UNSTAKE_COOLDOWN_HOURS} hours`,
+      );
       await loadData();
     } catch (error) {
       toast.error(
@@ -210,6 +213,9 @@ export function StakingPanel() {
   }
 
   const activeStake = walletStaking?.activeStake;
+  const pendingUnstake = walletStaking?.stakes.find(
+    (stake) => stake.status === "unstake_requested",
+  );
   const required = curve.requiredStakeSol;
   const hasSufficientStake =
     activeStake &&
@@ -221,8 +227,9 @@ export function StakingPanel() {
       <div className="rounded-xl border border-surface-border bg-surface-panel p-6">
         <h2 className="text-lg font-medium text-content-primary">Stake SOL</h2>
         <p className="mt-2 text-sm text-content-secondary">
-          Send SOL to the treasury wallet when the fee curve requires it. Returns
-          are processed manually on unstake requests (no slashing).
+          Send SOL to the treasury wallet when the fee curve requires it. After
+          unstake approval, funds return to your wallet automatically after{" "}
+          {UNSTAKE_COOLDOWN_HOURS} hours.
         </p>
 
         {!connected ? (
@@ -242,13 +249,18 @@ export function StakingPanel() {
               <div className="rounded-lg border border-surface-border bg-surface/60 p-4">
                 <p className="text-xs text-content-muted">Your active stake</p>
                 <p className="mt-1 text-xl font-semibold text-content-primary">
-                  {activeStake
-                    ? `${formatStakeSol(activeStake.amountSol)} SOL`
+                  {activeStake || pendingUnstake
+                    ? `${formatStakeSol((activeStake ?? pendingUnstake)!.amountSol)} SOL`
                     : "None"}
                 </p>
-                {activeStake?.status === "unstake_requested" && (
-                  <p className="mt-1 text-xs text-amber-300">Unstake pending</p>
-                )}
+                {pendingUnstake ? (
+                  <p className="mt-1 text-xs text-amber-300">
+                    Unstake approved — returns{" "}
+                    {pendingUnstake.returnAvailableAt
+                      ? new Date(pendingUnstake.returnAvailableAt).toLocaleString()
+                      : `after ${UNSTAKE_COOLDOWN_HOURS}h`}
+                  </p>
+                ) : null}
               </div>
             </div>
 

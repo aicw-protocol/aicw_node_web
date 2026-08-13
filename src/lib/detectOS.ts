@@ -26,7 +26,7 @@ export function getOSLabel(os: OperatingSystem): string {
   }
 }
 
-/** Release binary filenames from GitHub Releases (see aicw_node/.github/workflows/release.yml). */
+/** Release CLI binary filenames (see aicw_node/.github/workflows/release.yml). */
 export const RELEASE_BINARIES = {
   windows: "aicw-node-windows-amd64.exe",
   linux: "aicw-node-linux-amd64",
@@ -34,6 +34,16 @@ export const RELEASE_BINARIES = {
   macosIntel: "aicw-node-darwin-amd64",
   macosAppleSilicon: "aicw-node-darwin-arm64",
 } as const;
+
+/** Desktop GUI release filenames (see aicw_node/scripts/build-gui.*). */
+export const RELEASE_GUI_ARTIFACTS = {
+  windows: "aicw-node-setup-windows-amd64.exe",
+  linux: "aicw-node-setup-linux-amd64",
+  macos: "aicw-node-setup-darwin-universal.app.zip",
+} as const;
+
+export const GITHUB_RELEASES_URL =
+  "https://github.com/aicw-protocol/aicw_node/releases";
 
 /** Heuristic for Apple Silicon Macs (M1+) that report as MacIntel in the UA. */
 export function detectMacArch(): "arm64" | "amd64" {
@@ -43,6 +53,39 @@ export function detectMacArch(): "arm64" | "amd64" {
   // M-series Macs often report MacIntel with maxTouchPoints > 1
   if (platform.includes("mac") && navigator.maxTouchPoints > 1) return "arm64";
   return "amd64";
+}
+
+/** Returns the release GUI filename for the detected OS. */
+export function getGUIBinaryName(os: OperatingSystem): string {
+  switch (os) {
+    case "windows":
+      return RELEASE_GUI_ARTIFACTS.windows;
+    case "macos":
+      return RELEASE_GUI_ARTIFACTS.macos;
+    case "linux":
+      return RELEASE_GUI_ARTIFACTS.linux;
+    default:
+      return RELEASE_GUI_ARTIFACTS.linux;
+  }
+}
+
+/** Default install folder shown in the guide. */
+export function getGUIInstallPath(os: OperatingSystem): string {
+  switch (os) {
+    case "windows":
+      return "%LOCALAPPDATA%\\Programs\\AICW Node";
+    case "macos":
+      return "~/Library/Application Support/AICW Node";
+    case "linux":
+      return "~/.config/AICW Node";
+    default:
+      return "~/.config/AICW Node";
+  }
+}
+
+/** Node engine filename inside the install folder. */
+export function getNodeEngineName(os: OperatingSystem): string {
+  return os === "windows" ? "aicw-node.exe" : "aicw-node";
 }
 
 /** Returns the release binary filename for the detected OS. */

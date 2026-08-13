@@ -3,7 +3,7 @@ import { getOnboardingConfig } from "@/lib/onboardingConfig";
 
 export const dynamic = "force-dynamic";
 
-/** GET /api/onboarding/config — public settings for the Create Node flow. */
+/** GET /api/onboarding/config — public settings for the desktop app and guide. */
 export async function GET() {
   return NextResponse.json(getOnboardingConfig());
 }

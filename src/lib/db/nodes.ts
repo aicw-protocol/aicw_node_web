@@ -100,6 +100,32 @@ export async function listNodes(): Promise<NodeListResponse> {
   };
 }
 
+export async function countNodesByOwner(ownerWallet: string): Promise<number> {
+  const pool = await getPool();
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT COUNT(*) AS total FROM nodes WHERE owner_wallet = :ownerWallet`,
+    { ownerWallet: ownerWallet.trim() },
+  );
+  return Number(rows[0]?.total ?? 0);
+}
+
+export async function findNodeByIdAndOwner(input: {
+  nodeId: string;
+  ownerWallet: string;
+}): Promise<NodeRecord | null> {
+  const pool = await getPool();
+  const [rows] = await pool.query<NodeRow[]>(
+    `SELECT ${NODE_SELECT} FROM nodes
+     WHERE node_id = :nodeId AND owner_wallet = :ownerWallet
+     LIMIT 1`,
+    {
+      nodeId: input.nodeId.trim(),
+      ownerWallet: input.ownerWallet.trim(),
+    },
+  );
+  return rows[0] ? mapNode(rows[0]) : null;
+}
+
 export async function listNodesByOwner(ownerWallet: string): Promise<NodeRecord[]> {
   const pool = await getPool();
   const [rows] = await pool.query<NodeRow[]>(

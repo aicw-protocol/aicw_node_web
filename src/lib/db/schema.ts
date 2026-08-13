@@ -121,6 +121,59 @@ async function ensureNodePingColumn(pool: Pool): Promise<void> {
   }
 }
 
+async function ensureStakingUnstakeColumns(pool: Pool): Promise<void> {
+  const alters = [
+    "ALTER TABLE staking ADD COLUMN unstake_requested_at TIMESTAMP NULL COMMENT 'When unstake was approved'",
+    "ALTER TABLE staking ADD COLUMN return_available_at TIMESTAMP NULL COMMENT 'Earliest time SOL may be returned'",
+    "ALTER TABLE staking ADD COLUMN returned_at TIMESTAMP NULL COMMENT 'When SOL was returned to operator wallet'",
+    "ALTER TABLE staking ADD COLUMN return_tx_signature VARCHAR(128) NULL COMMENT 'Solana tx sending stake back to operator'",
+    "ALTER TABLE staking ADD COLUMN last_initiated_node_id VARCHAR(128) NULL COMMENT 'Last node that triggered unstake'",
+    "ALTER TABLE staking ADD COLUMN last_initiated_node_name VARCHAR(64) NULL COMMENT 'Last node name that triggered unstake'",
+  ];
+
+  for (const sql of alters) {
+    try {
+      await pool.query(sql);
+    } catch (error) {
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        error.code === "ER_DUP_FIELDNAME"
+      ) {
+        continue;
+      }
+      throw error;
+    }
+  }
+}
+
+const UNSTAKE_EVENTS_TABLE = `
+CREATE TABLE IF NOT EXISTS unstake_events (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  staking_id BIGINT UNSIGNED NULL,
+  wallet VARCHAR(64) NOT NULL,
+  node_id VARCHAR(128) NULL,
+  node_name VARCHAR(64) NULL,
+  event_type ENUM(
+    'node_offboard_started',
+    'node_stopped',
+    'node_deregistered',
+    'unstake_requested',
+    'return_scheduled',
+    'return_sent',
+    'return_failed',
+    'local_identity_removed'
+  ) NOT NULL,
+  detail TEXT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_unstake_events_staking (staking_id),
+  KEY idx_unstake_events_wallet (wallet),
+  KEY idx_unstake_events_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+`;
+
 export async function ensureSchema(pool: Pool): Promise<void> {
   if (!schemaReady) {
     schemaReady = (async () => {
@@ -129,6 +182,8 @@ export async function ensureSchema(pool: Pool): Promise<void> {
       await ensureNodeGeoColumns(pool);
       await ensureNodePingColumn(pool);
       await ensureNodeOnboardingColumns(pool);
+      await ensureStakingUnstakeColumns(pool);
+      await pool.query(UNSTAKE_EVENTS_TABLE);
     })();
   }
   await schemaReady;

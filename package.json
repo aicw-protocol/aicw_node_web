@@ -3,12 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 4003",
+    "dev": "node ../aicw/scripts/next-dev.mjs aicw_node_web",
     "globe:grid": "node scripts/generate-land-grid.mjs",
     "build": "next build",
-    "start": "next start -p 4003",
+    "start": "node ../aicw/scripts/next-start.mjs aicw_node_web",
     "lint": "next lint",
-    "db:init": "node scripts/init-db.mjs"
+    "db:init": "node scripts/init-db.mjs",
+    "unstake:check-config": "node scripts/check-unstake-config.mjs",
+    "unstake:process": "node scripts/process-unstake-returns.mjs",
+    "unstake:setup-cron": "powershell -ExecutionPolicy Bypass -File scripts/setup-unstake-cron.ps1",
+    "unstake:generate-secrets": "node scripts/generate-unstake-secrets.mjs"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.2.0",
@@ -21,6 +25,7 @@
     "@solana/wallet-adapter-react": "^0.15.39",
     "@solana/wallet-adapter-react-ui": "^0.9.39",
     "@solana/web3.js": "^1.98.2",
+    "bs58": "^4.0.1",
     "mysql2": "^3.22.5",
     "next": "^14.2.35",
     "react": "^18.3.1",

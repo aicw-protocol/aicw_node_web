@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AppLayout } from "@/components/PageShell";
 import { TableOfContents } from "@/components/guide/TableOfContents";
-import { GuideStartCommands } from "@/components/guide/GuideStartCommands";
 import { GuideFileLayout } from "@/components/guide/GuideFileLayout";
-import { RELEASE_BINARIES } from "@/lib/detectOS";
+import { GuideDesktopDownload } from "@/components/guide/GuideDesktopDownload";
 import { PAGE_CONTAINER } from "@/lib/layout";
 
 export const metadata: Metadata = {
@@ -115,17 +114,17 @@ export default function GuidePage() {
                 1
               </span>
               <div>
-                <h3 className="font-medium text-content-primary">Create your node</h3>
+                <h3 className="font-medium text-content-primary">Stake if required</h3>
                 <p className="mt-1 text-sm text-content-secondary">
-                  Go to the Dashboard, enter a name for your node, and click
-                  "Create node". This generates your unique identity files and
-                  downloads them automatically.
+                  Connect your wallet on the Staking page. Once enough nodes are
+                  registered globally, you need active stake before registering a
+                  new node.
                 </p>
                 <Link
-                  href="/dashboard"
-                  className="mt-3 inline-flex items-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-muted"
+                  href="/staking"
+                  className="mt-3 inline-flex items-center rounded-lg border border-surface-border px-4 py-2 text-sm text-content-secondary hover:border-accent hover:text-content-primary"
                 >
-                  Go to Dashboard
+                  Go to Staking
                   <i className="fa-solid fa-arrow-right ml-2" />
                 </Link>
               </div>
@@ -138,19 +137,16 @@ export default function GuidePage() {
                 2
               </span>
               <div>
-                <h3 className="font-medium text-content-primary">Download the program</h3>
-                <p className="mt-1 text-sm text-content-secondary">
-                  Get the node program for your operating system from GitHub
-                  Releases. Choose Windows, macOS, or Linux.
-                </p>
+                <h3 className="font-medium text-content-primary">Install the desktop app</h3>
+                <GuideDesktopDownload variant="inline" className="mt-1 text-sm text-content-secondary" />
                 <a
                   href="https://github.com/aicw-protocol/aicw_node/releases"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-3 inline-flex items-center rounded-lg border border-surface-border px-4 py-2 text-sm text-content-secondary hover:border-accent hover:text-content-primary"
+                  className="mt-3 inline-flex items-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-muted"
                 >
                   <i className="fa-brands fa-github mr-2" />
-                  GitHub Releases
+                  Download desktop app
                 </a>
               </div>
             </div>
@@ -162,31 +158,19 @@ export default function GuidePage() {
                 3
               </span>
               <div>
-                <h3 className="font-medium text-content-primary">Organize your files</h3>
+                <h3 className="font-medium text-content-primary">Register and start in the app</h3>
                 <p className="mt-1 text-sm text-content-secondary">
-                  Create a folder for your node. Put the program and config files
-                  in it. Put your identity files in an "identity" subfolder.
-                  Use the release binary that matches your OS (see file names
-                  below).
+                  Open the AICW Node app, sign in with Browser using the same wallet,
+                  click <strong className="text-content-primary">+ Register Node</strong>,
+                  approve the wallet signature, then click Start.
                 </p>
-                <GuideFileLayout />
-              </div>
-            </div>
-          </li>
-
-          <li className="rounded-lg border border-surface-border bg-surface-panel p-5">
-            <div className="flex items-start gap-4">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-bold text-white">
-                4
-              </span>
-              <div>
-                <h3 className="font-medium text-content-primary">Run the command</h3>
-                <p className="mt-1 text-sm text-content-secondary">
-                  Open a terminal, navigate to your folder, and run the start
-                  command for your operating system. Keep the window open — your
-                  node is now running!
-                </p>
-                <GuideStartCommands />
+                <Link
+                  href="/dashboard"
+                  className="mt-3 inline-flex items-center rounded-lg border border-surface-border px-4 py-2 text-sm text-content-secondary hover:border-accent hover:text-content-primary"
+                >
+                  Open dashboard to verify
+                  <i className="fa-solid fa-arrow-right ml-2" />
+                </Link>
               </div>
             </div>
           </li>
@@ -194,13 +178,13 @@ export default function GuidePage() {
           <li className="rounded-lg border border-surface-border bg-surface-panel p-5">
             <div className="flex items-start gap-4">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-sm font-bold text-white">
-                5
+                4
               </span>
               <div>
-                <h3 className="font-medium text-content-primary">Verify it's working</h3>
+                <h3 className="font-medium text-content-primary">Verify it&apos;s working</h3>
                 <p className="mt-1 text-sm text-content-secondary">
-                  Check your Dashboard — your node should show as "Active" within
-                  a minute or two. That means it's connected and ready to earn!
+                  Check your Dashboard — your node should show as &quot;Active&quot; within
+                  a minute or two. That means it&apos;s connected and ready to earn.
                 </p>
               </div>
             </div>
@@ -210,101 +194,137 @@ export default function GuidePage() {
 
       <section id="detailed-steps" className="scroll-mt-6 mt-12">
         <h2 className="text-2xl font-semibold text-content-primary">Detailed Steps</h2>
+        <p className="mt-4 text-content-secondary">
+          Step-by-step using the <strong>AICW Node desktop app</strong> on Windows,
+          Linux, or macOS. Staking still happens on this website; everything else runs
+          in the app.
+        </p>
 
         <div className="mt-6 space-y-8">
           <div>
             <h3 className="text-xl font-medium text-content-primary">
-              Opening a Terminal
+              1. Stake on the website (if required)
             </h3>
             <p className="mt-2 text-content-secondary">
-              A terminal (also called command prompt) is where you type commands
-              to run your node.
+              Open the{" "}
+              <Link href="/staking" className="text-accent hover:underline">
+                Staking
+              </Link>{" "}
+              page and connect the same Solana wallet you will use in the desktop app.
+              While fewer than 30 nodes exist globally, no stake is required. After
+              that, you need active stake before the app will let you register a new node.
             </p>
-            <div className="mt-4 space-y-3">
-              <div className="rounded-lg border border-surface-border bg-surface/60 p-4">
-                <h4 className="font-medium text-content-primary">
-                  <i className="fa-brands fa-windows mr-2" />
-                  Windows
-                </h4>
-                <p className="mt-1 text-sm text-content-secondary">
-                  Press <kbd className="rounded bg-gray-800 px-2 py-1">Win</kbd> +{" "}
-                  <kbd className="rounded bg-gray-800 px-2 py-1">R</kbd>, type{" "}
-                  <code className="text-content-primary">cmd</code>, press Enter. Or search
-                  "PowerShell" in Start menu.
-                </p>
-              </div>
-              <div className="rounded-lg border border-surface-border bg-surface/60 p-4">
-                <h4 className="font-medium text-content-primary">
-                  <i className="fa-brands fa-apple mr-2" />
-                  macOS
-                </h4>
-                <p className="mt-1 text-sm text-content-secondary">
-                  Press{" "}
-                  <kbd className="rounded bg-gray-800 px-2 py-1">Cmd</kbd> +{" "}
-                  <kbd className="rounded bg-gray-800 px-2 py-1">Space</kbd>, type{" "}
-                  <code className="text-content-primary">Terminal</code>, press Enter.
-                </p>
-              </div>
-              <div className="rounded-lg border border-surface-border bg-surface/60 p-4">
-                <h4 className="font-medium text-content-primary">
-                  <i className="fa-brands fa-linux mr-2" />
-                  Linux
-                </h4>
-                <p className="mt-1 text-sm text-content-secondary">
-                  Press{" "}
-                  <kbd className="rounded bg-gray-800 px-2 py-1">Ctrl</kbd> +{" "}
-                  <kbd className="rounded bg-gray-800 px-2 py-1">Alt</kbd> +{" "}
-                  <kbd className="rounded bg-gray-800 px-2 py-1">T</kbd>, or find
-                  Terminal in your applications.
-                </p>
-              </div>
-            </div>
           </div>
 
           <div>
             <h3 className="text-xl font-medium text-content-primary">
-              Creating password.txt
+              2. Install the desktop app
             </h3>
-            <p className="mt-2 text-content-secondary">
-              This file contains a password that encrypts your node's local
-              database. It can be any text you choose.
-            </p>
+            <GuideDesktopDownload variant="steps" className="mt-4" />
+          </div>
+
+          <div>
+            <h3 className="text-xl font-medium text-content-primary">
+              3. Sign in with your wallet
+            </h3>
             <ol className="mt-4 list-inside list-decimal space-y-2 text-sm text-content-secondary">
-              <li>Open Notepad (Windows) or TextEdit (Mac)</li>
+              <li>Open the AICW Node app and go to the <strong>Nodes</strong> tab.</li>
               <li>
-                Type a random password, like:{" "}
-                <code className="text-content-primary">MySecretNodePass123!</code>
+                Click <strong>Sign in with Browser</strong>. Your browser opens the
+                sign-in page.
               </li>
               <li>
-                Save the file as <code className="text-content-primary">password.txt</code>{" "}
-                in your node folder
+                Connect Phantom (or another Solana wallet) and approve the sign-in
+                message.
+              </li>
+              <li>
+                Return to the app — your wallet address should appear in the top bar.
+                Use the <strong>same wallet</strong> you used for staking.
               </li>
             </ol>
-            <p className="mt-3 text-sm text-amber-200">
-              <i className="fa-solid fa-triangle-exclamation mr-2" />
-              Don't lose this file. If you do, you'll need to reset your node's
-              local data.
+          </div>
+
+          <div>
+            <h3 className="text-xl font-medium text-content-primary">
+              4. Register a node in the app
+            </h3>
+            <ol className="mt-4 list-inside list-decimal space-y-2 text-sm text-content-secondary">
+              <li>
+                Click <strong>+ Register Node</strong> and enter a node name (2–64
+                characters: letters, numbers, <code className="text-content-primary">._-</code>
+                ).
+              </li>
+              <li>
+                Approve the <strong>registration</strong> message in your wallet when
+                the browser opens.
+              </li>
+              <li>
+                The app creates your identity locally and registers the public key on
+                the network. Your private key never leaves your computer.
+              </li>
+              <li>
+                The app also writes{" "}
+                <code className="text-content-primary">network-config.yaml</code>,{" "}
+                <code className="text-content-primary">password.txt</code>, and{" "}
+                <code className="text-content-primary">operator-config.yaml</code>{" "}
+                if they are not already present.
+              </li>
+            </ol>
+            <GuideFileLayout />
+          </div>
+
+          <div>
+            <h3 className="text-xl font-medium text-content-primary">
+              5. Start the node
+            </h3>
+            <ol className="mt-4 list-inside list-decimal space-y-2 text-sm text-content-secondary">
+              <li>
+                In the node list, expand your node and confirm badges show{" "}
+                <strong>Local ready</strong> (and ideally <strong>Registered</strong>
+                ).
+              </li>
+              <li>Click <strong>Start</strong>.</li>
+              <li>
+                Open the <strong>Logs</strong> tab to see output from the node process.
+              </li>
+              <li>
+                On the website{" "}
+                <Link href="/dashboard" className="text-accent hover:underline">
+                  Dashboard
+                </Link>
+                , the node should become <strong>Active</strong> within a minute or two.
+              </li>
+            </ol>
+            <p className="mt-3 text-sm text-content-secondary">
+              One app instance can run up to <strong>5 nodes</strong> at the same time.
             </p>
           </div>
 
           <div>
             <h3 className="text-xl font-medium text-content-primary">
-              Making the file executable (Mac/Linux only)
+              6. Stop or repair
             </h3>
-            <p className="mt-2 text-content-secondary">
-              On Mac and Linux, you need to mark the program as executable before
-              you can run it. Use the exact filename you downloaded from GitHub
-              Releases.
-            </p>
-            <div className="mt-3 space-y-2 rounded bg-gray-900 p-3 font-mono text-sm text-content-secondary">
-              <p>chmod +x {RELEASE_BINARIES.linux}</p>
-              <p>chmod +x {RELEASE_BINARIES.macosIntel}</p>
-              <p>chmod +x {RELEASE_BINARIES.macosAppleSilicon}</p>
-            </div>
-            <p className="mt-2 text-sm text-content-secondary">
-              Run this command once in your node folder, then you can start the
-              node normally.
-            </p>
+            <ul className="mt-4 list-inside list-disc space-y-2 text-sm text-content-secondary">
+              <li>
+                <strong>Stop</strong> — expand the node and click Stop, or sign out
+                from the app header.
+              </li>
+              <li>
+                <strong>Install Folder</strong> — opens the folder where config and
+                identity files live.
+              </li>
+              <li>
+                <strong>Repair Binary</strong> — reinstalls the bundled node engine from
+                the app if the binary was deleted or corrupted.
+              </li>
+              <li>
+                <strong>Generate Config Files</strong> — if shared files (
+                <code className="text-content-primary">network-config.yaml</code>,{" "}
+                <code className="text-content-primary">password.txt</code>) are missing
+                for an older registration, use this button in the yellow banner on the
+                Nodes tab.
+              </li>
+            </ul>
           </div>
         </div>
       </section>
@@ -312,37 +332,42 @@ export default function GuidePage() {
       <section id="troubleshooting" className="scroll-mt-6 mt-12">
         <h2 className="text-2xl font-semibold text-content-primary">Troubleshooting</h2>
         <p className="mt-4 text-content-secondary">
-          Common problems and how to fix them.
+          Common problems when using the desktop app. Check the{" "}
+          <strong>Logs</strong> tab first — error messages usually appear there.
         </p>
 
         <div className="mt-6 space-y-4">
           <details className="rounded-lg border border-surface-border bg-surface-panel">
             <summary className="cursor-pointer p-4 font-medium text-content-primary">
-              Node doesn't show as Active
+              Node doesn&apos;t show as Active on the Dashboard
             </summary>
             <div className="border-t border-surface-border p-4 text-sm text-content-secondary">
               <ul className="space-y-2">
                 <li>
-                  <strong>Check your terminal</strong> — Look for error messages
-                  (usually in red). The node should show "[READY]" when it's
-                  running properly.
+                  <strong>Is the node running?</strong> — In the app, the node should
+                  show a <strong>Running</strong> badge and the status strip should name
+                  your node.
                 </li>
                 <li>
-                  <strong>Verify file locations</strong> — Make sure identity
-                  files are in the identity/ subfolder and config files are next
-                  to the program.
+                  <strong>Check the Logs tab</strong> — Look for errors after Start. A
+                  healthy start shows connection messages, not repeated failures.
                 </li>
                 <li>
-                  <strong>Check your internet</strong> — The node needs to reach
-                  our servers to report its status.
+                  <strong>Local ready</strong> — If you see <strong>Files missing</strong>
+                  , register the node again or click{" "}
+                  <strong>Generate Config Files</strong> for shared config files.
                 </li>
                 <li>
-                  <strong>Firewall</strong> — Some firewalls block outgoing
-                  connections. Try temporarily disabling it.
+                  <strong>Same wallet</strong> — The app wallet must match the wallet
+                  that owns the registered node on the Dashboard.
                 </li>
                 <li>
-                  <strong>Wait a bit longer</strong> — It can take up to 2 minutes
-                  for the first ping to register.
+                  <strong>Internet / firewall</strong> — The node must reach AICW
+                  servers (NATS, Consul, node web ping). Allow outbound connections.
+                </li>
+                <li>
+                  <strong>Wait up to 2 minutes</strong> — The first ping can take a
+                  little time to show as Active.
                 </li>
               </ul>
             </div>
@@ -350,34 +375,33 @@ export default function GuidePage() {
 
           <details className="rounded-lg border border-surface-border bg-surface-panel">
             <summary className="cursor-pointer p-4 font-medium text-content-primary">
-              "Permission denied" error
-            </summary>
-            <div className="border-t border-surface-border p-4 text-sm text-content-secondary">
-              <p>On Mac/Linux, run chmod on the binary you downloaded, for example:</p>
-              <code className="mt-2 block rounded bg-gray-900 p-2">
-                chmod +x {RELEASE_BINARIES.linux}
-              </code>
-              <p className="mt-2">Then try starting the node again.</p>
-            </div>
-          </details>
-
-          <details className="rounded-lg border border-surface-border bg-surface-panel">
-            <summary className="cursor-pointer p-4 font-medium text-content-primary">
-              "File not found" error
+              &quot;Files missing&quot; or Start is disabled
             </summary>
             <div className="border-t border-surface-border p-4 text-sm text-content-secondary">
               <ul className="space-y-2">
                 <li>
-                  Make sure you're in the correct folder (use{" "}
-                  <code className="text-content-primary">cd path/to/your/folder</code>)
+                  Expand the node row to see which files are missing (
+                  <code className="text-content-primary">network-config.yaml</code>,{" "}
+                  <code className="text-content-primary">password.txt</code>, identity
+                  files, etc.).
                 </li>
                 <li>
-                  Check that all required files exist: the program, both config
-                  files, password.txt, and the identity folder with its files
+                  For a <strong>new node</strong>, use{" "}
+                  <strong>+ Register Node</strong> — the app creates everything
+                  automatically.
                 </li>
                 <li>
-                  File names are case-sensitive on Mac/Linux. Make sure they match
-                  exactly.
+                  For an <strong>older web-registered node</strong> without local
+                  identity files, you must register again in the app with a new name, or
+                  restore identity files from your backup into the{" "}
+                  <code className="text-content-primary">identity/</code> folder.
+                </li>
+                <li>
+                  Click <strong>Generate Config Files</strong> in the yellow banner if
+                  only shared config files are missing.
+                </li>
+                <li>
+                  Use <strong>Install Folder</strong> to verify files on disk.
                 </li>
               </ul>
             </div>
@@ -385,23 +409,59 @@ export default function GuidePage() {
 
           <details className="rounded-lg border border-surface-border bg-surface-panel">
             <summary className="cursor-pointer p-4 font-medium text-content-primary">
-              Node was Active but now shows as offline
+              Registration fails or wallet sign-in fails
             </summary>
             <div className="border-t border-surface-border p-4 text-sm text-content-secondary">
               <ul className="space-y-2">
                 <li>
-                  <strong>Is the terminal still open?</strong> — Closing the
-                  terminal stops the node. Keep it running.
+                  <strong>Staking</strong> — If required stake is not met, stake on the{" "}
+                  <Link href="/staking" className="text-accent hover:underline">
+                    Staking
+                  </Link>{" "}
+                  page first.
                 </li>
                 <li>
-                  <strong>Did your computer sleep?</strong> — The node stops when
-                  your computer sleeps. Adjust power settings to prevent sleep, or
-                  restart the node after waking.
+                  <strong>Sign in with Browser</strong> — Use this before registering.
+                  Pasting a wallet address alone is not enough; the app needs a verified
+                  browser signature.
                 </li>
                 <li>
-                  <strong>Internet connection</strong> — If your connection
-                  dropped briefly, the node may have lost contact. Usually it
-                  reconnects automatically.
+                  <strong>Approve both messages</strong> — One for sign-in, one for
+                  node registration. Use the same wallet for both.
+                </li>
+                <li>
+                  <strong>Pop-up blockers</strong> — Allow the browser window opened
+                  from the app.
+                </li>
+                <li>
+                  If registration succeeded on the network but local files failed, check
+                  the install folder permissions and try again.
+                </li>
+              </ul>
+            </div>
+          </details>
+
+          <details className="rounded-lg border border-surface-border bg-surface-panel">
+            <summary className="cursor-pointer p-4 font-medium text-content-primary">
+              Node was Active but now shows offline
+            </summary>
+            <div className="border-t border-surface-border p-4 text-sm text-content-secondary">
+              <ul className="space-y-2">
+                <li>
+                  <strong>Did you click Stop?</strong> — Or close the app? Start the
+                  node again from the Nodes tab.
+                </li>
+                <li>
+                  <strong>Computer sleep</strong> — Sleep or shutdown stops the node.
+                  Disable sleep for 24/7 operation, or Start again after waking.
+                </li>
+                <li>
+                  <strong>Internet drop</strong> — The node usually reconnects when
+                  network returns; if not, Stop then Start.
+                </li>
+                <li>
+                  Check the <strong>Logs</strong> tab for crash or lock errors (for
+                  example, another copy of the node already using the local database).
                 </li>
               </ul>
             </div>
@@ -412,19 +472,18 @@ export default function GuidePage() {
               How do I keep my node running 24/7?
             </summary>
             <div className="border-t border-surface-border p-4 text-sm text-content-secondary">
-              <p>For continuous operation:</p>
               <ul className="mt-2 space-y-2">
                 <li>
-                  <strong>Disable sleep mode</strong> — In your computer's power
-                  settings, set it to never sleep.
+                  <strong>Keep the app running</strong> — Leave AICW Node open with your
+                  node started. Closing the app stops the node.
                 </li>
                 <li>
-                  <strong>Use a server or VPS</strong> — For professional
-                  operation, consider renting a small cloud server.
+                  <strong>Disable sleep</strong> — In Windows power settings, prevent
+                  the PC from sleeping while operating a node.
                 </li>
                 <li>
-                  <strong>Use Docker</strong> — The node supports Docker for
-                  automatic restarts. See the GitHub repo for instructions.
+                  <strong>Use a always-on PC or VPS</strong> — For professional
+                  operation, run the desktop app on a machine that stays online.
                 </li>
               </ul>
             </div>
@@ -467,8 +526,10 @@ export default function GuidePage() {
               Can I run multiple nodes?
             </summary>
             <div className="border-t border-surface-border p-4 text-sm text-content-secondary">
-              Yes, but each node needs its own identity and (if required) its own
-              stake. Running multiple nodes from the same wallet is allowed.
+              Yes. Register each node separately in the desktop app (each needs its
+              own name and identity). One app window runs one node process at a time —
+              run multiple app instances if you need several nodes online at once. Each
+              node may require its own stake once the bonding curve applies.
             </div>
           </details>
 
@@ -477,9 +538,11 @@ export default function GuidePage() {
               What if I lose my private key file?
             </summary>
             <div className="border-t border-surface-border p-4 text-sm text-content-secondary">
-              Your node's identity is tied to that private key. If lost, you'll
-              need to create a new node from scratch. Always keep a backup of your
-              identity files in a safe place.
+              Your node identity is tied to that private key file in the{" "}
+              <code className="text-content-primary">identity/</code> folder. If lost,
+              create a new node with <strong>+ Register Node</strong> in the app. Back up
+              the install folder (especially <code className="text-content-primary">identity/</code>
+              ) in a safe place — never share the private key file.
             </div>
           </details>
 
@@ -500,15 +563,12 @@ export default function GuidePage() {
       <section className="mt-12 rounded-lg border border-accent/30 bg-accent/5 p-6 text-center">
         <h2 className="text-xl font-semibold text-content-primary">Ready to start?</h2>
         <p className="mt-2 text-content-secondary">
-          Create your node now and start earning rewards.
+          Download the desktop app, register your node, and track status on the dashboard.
         </p>
-        <Link
-          href="/dashboard"
+        <GuideDesktopDownload
+          variant="button"
           className="mt-4 inline-flex items-center rounded-lg bg-accent px-6 py-3 text-sm font-medium text-white hover:bg-accent-muted"
-        >
-          Go to Dashboard
-          <i className="fa-solid fa-arrow-right ml-2" />
-        </Link>
+        />
       </section>
           </div>
 

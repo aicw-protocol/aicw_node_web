@@ -11,7 +11,7 @@ export interface TocItem {
 export const GUIDE_TOC_ITEMS: TocItem[] = [
   { id: "overview", label: "Overview — What is a node?" },
   { id: "requirements", label: "Requirements" },
-  { id: "quick-start", label: "Quick Start (5 minutes)" },
+  { id: "quick-start", label: "Quick Start" },
   { id: "detailed-steps", label: "Detailed Steps" },
   { id: "troubleshooting", label: "Troubleshooting" },
   { id: "faq", label: "FAQ" },
