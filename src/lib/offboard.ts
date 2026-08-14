@@ -44,7 +44,6 @@ export async function offboardNode(input: {
   wallet: string;
   nodeId: string;
   nodeName?: string | null;
-  processStopped?: boolean;
 }): Promise<OffboardNodeResult> {
   const wallet = input.wallet.trim();
   const nodeId = input.nodeId.trim();
@@ -55,20 +54,10 @@ export async function offboardNode(input: {
     throw new Error("Node not found or not owned by this wallet");
   }
 
-  if (!input.processStopped && isNodeRecentlyActive(node.lastPingAt)) {
+  if (isNodeRecentlyActive(node.lastPingAt)) {
     throw new Error(
       "This node appears to be still active on the network. Stop it in the GUI and wait a few minutes before unstaking.",
     );
-  }
-
-  if (input.processStopped) {
-    await logUnstakeEvent({
-      wallet,
-      nodeId,
-      nodeName: nodeName ?? node.nodeName,
-      eventType: "node_stopped",
-      detail: "Node process stopped by operator before offboard",
-    });
   }
 
   await logUnstakeEvent({

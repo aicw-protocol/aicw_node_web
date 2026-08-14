@@ -16,6 +16,10 @@ import {
 } from "@/lib/stakingCurve";
 import type { StakingRecord } from "@/lib/db/types";
 import { UNSTAKE_COOLDOWN_HOURS } from "@/lib/unstakeConstants";
+import {
+  signGuiWalletAction,
+  walletCanSignMessages,
+} from "@/lib/walletSignChallenge";
 
 interface CurveResponse {
   registeredNodeCount: number;
@@ -35,7 +39,8 @@ interface WalletStakingResponse {
 type PanelState = "loading" | "ready" | "error" | "unconfigured";
 
 export function StakingPanel() {
-  const { publicKey, connected, sendTransaction } = useWallet();
+  const { publicKey, connected, sendTransaction, signMessage, wallet: activeWallet } =
+    useWallet();
   const { connection } = useConnection();
   const [panelState, setPanelState] = useState<PanelState>("loading");
   const [curve, setCurve] = useState<CurveResponse | null>(null);
@@ -153,12 +158,31 @@ export function StakingPanel() {
       return;
     }
 
+    if (!walletCanSignMessages(activeWallet?.adapter, signMessage)) {
+      toast.error("This wallet does not support message signing.");
+      return;
+    }
+
     setSubmitting(true);
     try {
+      const signed = await signGuiWalletAction({
+        adapter: activeWallet?.adapter,
+        publicKey,
+        signMessage,
+        wallet: publicKey.toBase58(),
+        purpose: "unstake",
+      });
+
       const res = await fetch("/api/staking/unstake", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wallet: publicKey.toBase58() }),
+        body: JSON.stringify({
+          wallet: signed.wallet,
+          challengeToken: signed.challengeToken,
+          signatureBase64: signed.signatureBase64,
+          signedMessageBase64: signed.signedMessageBase64,
+          message: signed.message,
+        }),
       });
       const json = (await res.json()) as { error?: string };
       if (!res.ok) {

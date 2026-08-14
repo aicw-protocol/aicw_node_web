@@ -8,7 +8,28 @@ ed.hashes.sha512Async = (message: Uint8Array) => Promise.resolve(sha512(message)
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
-export type GuiAuthPurpose = "login" | "register";
+export type GuiAuthPurpose =
+  | "login"
+  | "register"
+  | "offboard"
+  | "unstake"
+  | "delete_node";
+
+const NODE_SCOPED_PURPOSES: GuiAuthPurpose[] = [
+  "register",
+  "offboard",
+  "delete_node",
+];
+
+export function isGuiAuthPurpose(value: string): value is GuiAuthPurpose {
+  return (
+    value === "login" ||
+    value === "register" ||
+    value === "offboard" ||
+    value === "unstake" ||
+    value === "delete_node"
+  );
+}
 
 export interface CreateGuiAuthChallengeOptions {
   purpose?: GuiAuthPurpose;
@@ -43,11 +64,21 @@ export interface GuiAuthChallenge {
 }
 
 function getGuiAuthSecret(): string {
-  return (
-    process.env.GUI_AUTH_SECRET?.trim() ||
-    process.env.DATABASE_PASSWORD?.trim() ||
-    "aicw-gui-dev-secret"
-  );
+  const explicit = process.env.GUI_AUTH_SECRET?.trim();
+  if (explicit) {
+    return explicit;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("GUI_AUTH_SECRET must be set in production");
+  }
+
+  const dbPassword = process.env.DATABASE_PASSWORD?.trim();
+  if (dbPassword) {
+    return dbPassword;
+  }
+
+  return "aicw-gui-dev-secret";
 }
 
 function signChallengePayload(payload: string): string {
@@ -64,12 +95,41 @@ function buildChallengeMessage(
   options: CreateGuiAuthChallengeOptions = {},
 ): string {
   const purpose = options.purpose ?? "login";
-  const lines =
-    purpose === "register"
-      ? ["AICW Node Registration", `Wallet: ${wallet}`, `Node ID: ${options.nodeId ?? ""}`]
-      : ["AICW Node GUI Login", `Wallet: ${wallet}`];
+  let lines: string[];
+  switch (purpose) {
+    case "register":
+      lines = [
+        "AICW Node Registration",
+        `Wallet: ${wallet}`,
+        `Node ID: ${options.nodeId ?? ""}`,
+      ];
+      break;
+    case "offboard":
+      lines = [
+        "AICW Node Offboard",
+        `Wallet: ${wallet}`,
+        `Node ID: ${options.nodeId ?? ""}`,
+      ];
+      break;
+    case "delete_node":
+      lines = [
+        "AICW Node Delete",
+        `Wallet: ${wallet}`,
+        `Node ID: ${options.nodeId ?? ""}`,
+      ];
+      break;
+    case "unstake":
+      lines = ["AICW Node Unstake", `Wallet: ${wallet}`];
+      break;
+    default:
+      lines = ["AICW Node GUI Login", `Wallet: ${wallet}`];
+      break;
+  }
 
-  if (purpose === "register" && options.nodeName) {
+  if (
+    (purpose === "register" || purpose === "offboard") &&
+    options.nodeName
+  ) {
     lines.push(`Node Name: ${options.nodeName}`);
   }
   if (purpose === "register" && options.publicKey) {
@@ -119,8 +179,8 @@ export function createGuiAuthChallenge(
   options: CreateGuiAuthChallengeOptions = {},
 ): GuiAuthChallenge {
   const purpose = options.purpose ?? "login";
-  if (purpose === "register" && !options.nodeId?.trim()) {
-    throw new Error("nodeId is required for registration challenges");
+  if (NODE_SCOPED_PURPOSES.includes(purpose) && !options.nodeId?.trim()) {
+    throw new Error("nodeId is required for this challenge");
   }
 
   const nonce = randomUUID();
@@ -192,7 +252,7 @@ export function parseChallengeToken(
     }
 
     const purpose = parsed.purpose ?? "login";
-    if (purpose === "register" && !parsed.nodeId?.trim()) {
+    if (NODE_SCOPED_PURPOSES.includes(purpose) && !parsed.nodeId?.trim()) {
       return null;
     }
 
@@ -271,7 +331,7 @@ async function verifyEd25519Signature(
   }
 }
 
-export async function verifyGuiWalletSignature(input: {
+async function verifyWalletSignatureCore(input: {
   challengeToken: string;
   wallet: string;
   signatureBase64: string;
@@ -351,6 +411,25 @@ export async function verifyGuiWalletSignature(input: {
   return { ok: false, error: "Signature verification failed" };
 }
 
+export async function verifyGuiWalletSignature(input: {
+  challengeToken: string;
+  wallet: string;
+  signatureBase64: string;
+  message: string;
+  signedMessageBase64?: string;
+}): Promise<{ ok: true; wallet: string } | { ok: false; error: string }> {
+  const challenge = parseChallengeToken(input.challengeToken);
+  if (!challenge) {
+    return { ok: false, error: "Invalid or expired challenge token" };
+  }
+
+  if (challenge.purpose !== "login") {
+    return { ok: false, error: "Challenge is not for GUI login" };
+  }
+
+  return verifyWalletSignatureCore(input);
+}
+
 function normalizeOptional(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
@@ -387,6 +466,64 @@ function registrationFieldsMatch(
   return null;
 }
 
+function actionFieldsMatch(
+  challenge: ParsedGuiAuthChallenge,
+  expectedPurpose: GuiAuthPurpose,
+  input: { nodeId?: string; nodeName?: string },
+): string | null {
+  if (challenge.purpose !== expectedPurpose) {
+    return `Challenge is not for ${expectedPurpose}`;
+  }
+
+  if (expectedPurpose === "offboard" || expectedPurpose === "delete_node") {
+    if (!input.nodeId?.trim()) {
+      return "nodeId is required";
+    }
+    if (challenge.nodeId !== input.nodeId.trim()) {
+      return "Node ID does not match challenge";
+    }
+  }
+
+  if (expectedPurpose === "offboard") {
+    const expectedName = normalizeOptional(challenge.nodeName);
+    const actualName = normalizeOptional(input.nodeName);
+    if (expectedName && expectedName !== actualName) {
+      return "Node name does not match challenge";
+    }
+  }
+
+  return null;
+}
+
+export async function verifyWalletActionSignature(input: {
+  challengeToken: string;
+  wallet: string;
+  signatureBase64: string;
+  message: string;
+  signedMessageBase64?: string;
+  expectedPurpose: GuiAuthPurpose;
+  nodeId?: string;
+  nodeName?: string;
+}): Promise<{ ok: true; wallet: string } | { ok: false; error: string }> {
+  const challenge = parseChallengeToken(input.challengeToken);
+  if (!challenge) {
+    return { ok: false, error: "Invalid or expired challenge token" };
+  }
+
+  const mismatch = actionFieldsMatch(challenge, input.expectedPurpose, input);
+  if (mismatch) {
+    return { ok: false, error: mismatch };
+  }
+
+  return verifyWalletSignatureCore({
+    challengeToken: input.challengeToken,
+    wallet: input.wallet,
+    signatureBase64: input.signatureBase64,
+    signedMessageBase64: input.signedMessageBase64,
+    message: input.message,
+  });
+}
+
 export async function verifyNodeRegistrationSignature(input: {
   challengeToken: string;
   wallet: string;
@@ -407,7 +544,7 @@ export async function verifyNodeRegistrationSignature(input: {
     return { ok: false, error: mismatch };
   }
 
-  return verifyGuiWalletSignature({
+  return verifyWalletSignatureCore({
     challengeToken: input.challengeToken,
     wallet: input.wallet,
     signatureBase64: input.signatureBase64,

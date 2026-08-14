@@ -1,23 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isDatabaseConfigured } from "@/lib/db/config";
+import { findNodeById } from "@/lib/db/nodes";
 import { updateNodePing } from "@/lib/db/referral";
 import { resolvePingGeoFromRequest } from "@/lib/geo/resolvePingGeo";
+import { verifyNodePingSignature } from "@/lib/nodePingAuth";
 
 interface PingRequest {
   nodeId: string;
+  timestamp: string;
+  signatureBase64: string;
 }
 
 /**
  * POST /api/nodes/ping
- * 
+ *
  * Update a node's last-ping timestamp to signal it is alive.
- * Also records approximate map location from the request IP (GeoIP).
- * Nodes should call this periodically (every 1-2 minutes).
- * 
- * Request body:
- * {
- *   nodeId: string;  // The node ID
- * }
+ * Requires an Ed25519 signature from the registered node key.
  */
 export async function POST(request: NextRequest) {
   if (!isDatabaseConfigured()) {
@@ -37,29 +35,79 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { nodeId } = body;
+  const nodeId = body.nodeId?.trim();
+  const timestamp = body.timestamp?.trim();
+  const signatureBase64 = body.signatureBase64?.trim();
 
-  if (!nodeId || typeof nodeId !== "string" || !nodeId.trim()) {
+  if (!nodeId) {
     return NextResponse.json(
       { success: false, error: "nodeId is required" },
       { status: 400 },
     );
   }
 
+  if (!timestamp || !signatureBase64) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "timestamp and signatureBase64 are required",
+      },
+      { status: 400 },
+    );
+  }
+
   try {
+    const node = await findNodeById(nodeId);
+    if (!node || node.status !== "registered") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Node not found or not registered",
+        },
+        { status: 404 },
+      );
+    }
+
+    if (!node.publicKey) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Node public key is not registered; re-register the node",
+        },
+        { status: 403 },
+      );
+    }
+
+    const verified = await verifyNodePingSignature({
+      nodeId,
+      timestamp,
+      signatureBase64,
+      publicKeyHex: node.publicKey,
+    });
+
+    if (!verified.ok) {
+      return NextResponse.json(
+        { success: false, error: verified.error },
+        { status: 401 },
+      );
+    }
+
     const geo = await resolvePingGeoFromRequest(request);
-    const updated = await updateNodePing(nodeId.trim(), geo);
+    const updated = await updateNodePing(nodeId, geo);
 
     if (!updated) {
-      return NextResponse.json({
-        success: false,
-        error: "Node not found or not registered",
-      }, { status: 404 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Node not found or not registered",
+        },
+        { status: 404 },
+      );
     }
 
     return NextResponse.json({
       success: true,
-      nodeId: nodeId.trim(),
+      nodeId,
       timestamp: new Date().toISOString(),
       locationUpdated: geo !== null,
     });

@@ -1,9 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
 import toast from "react-hot-toast";
 import type { NodeRecord } from "@/lib/db/types";
 import { UNSTAKE_COOLDOWN_HOURS } from "@/lib/unstakeConstants";
+import {
+  signGuiWalletAction,
+  walletCanSignMessages,
+} from "@/lib/walletSignChallenge";
 
 interface OffboardStatusResponse {
   registeredNodeCount: number;
@@ -37,6 +42,7 @@ function formatWhen(iso: string | null | undefined): string {
 }
 
 export function OffboardWizard({ wallet, nodes, onUpdated }: OffboardWizardProps) {
+  const { publicKey, connected, signMessage, wallet: activeWallet } = useWallet();
   const [status, setStatus] = useState<OffboardStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyNodeId, setBusyNodeId] = useState<string | null>(null);
@@ -71,16 +77,41 @@ export function OffboardWizard({ wallet, nodes, onUpdated }: OffboardWizardProps
       return;
     }
 
+    if (!connected || !publicKey || publicKey.toBase58() !== wallet) {
+      toast.error("Connect the wallet that owns this node.");
+      return;
+    }
+
+    if (
+      !walletCanSignMessages(activeWallet?.adapter, signMessage)
+    ) {
+      toast.error("This wallet does not support message signing.");
+      return;
+    }
+
     setBusyNodeId(node.nodeId);
     try {
+      const signed = await signGuiWalletAction({
+        adapter: activeWallet?.adapter,
+        publicKey,
+        signMessage,
+        wallet,
+        purpose: "offboard",
+        nodeId: node.nodeId,
+        nodeName: node.nodeName ?? undefined,
+      });
+
       const res = await fetch("/api/offboard/node", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          wallet,
+          wallet: signed.wallet,
           nodeId: node.nodeId,
           nodeName: node.nodeName,
-          processStopped: true,
+          challengeToken: signed.challengeToken,
+          signatureBase64: signed.signatureBase64,
+          signedMessageBase64: signed.signedMessageBase64,
+          message: signed.message,
         }),
       });
       const json = (await res.json()) as { error?: string; message?: string };

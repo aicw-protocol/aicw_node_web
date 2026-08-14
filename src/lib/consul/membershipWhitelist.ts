@@ -1,4 +1,5 @@
 import {
+  assertConsulWriteSecurity,
   getConsulAclToken,
   getConsulHttpAddr,
   getMembershipWhitelistPrefix,
@@ -59,6 +60,8 @@ export async function addNodeToMembershipWhitelist(
   if (!isConsulWhitelistEnabled()) {
     return { skipped: true };
   }
+
+  assertConsulWriteSecurity();
 
   const nodeId = input.nodeId?.trim();
   const publicKey = input.publicKey?.trim();
@@ -124,6 +127,8 @@ export async function removeNodeFromMembershipWhitelist(
   if (!isConsulWhitelistEnabled()) {
     return { skipped: true };
   }
+
+  assertConsulWriteSecurity();
 
   const trimmedNodeId = nodeId?.trim();
   if (!trimmedNodeId) {

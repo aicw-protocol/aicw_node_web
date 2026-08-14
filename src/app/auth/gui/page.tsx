@@ -8,6 +8,25 @@ import { PublicKey } from "@solana/web3.js";
 import { SolanaSignMessage } from "@solana/wallet-standard-features";
 import { WalletButton } from "@/components/WalletButton";
 
+type GuiAuthPurpose =
+  | "login"
+  | "register"
+  | "offboard"
+  | "unstake"
+  | "delete_node";
+
+function parseGuiAuthPurpose(value: string): GuiAuthPurpose {
+  switch (value) {
+    case "register":
+    case "offboard":
+    case "unstake":
+    case "delete_node":
+      return value;
+    default:
+      return "login";
+  }
+}
+
 interface ChallengeResponse {
   message: string;
   challengeToken: string;
@@ -83,11 +102,15 @@ async function signGuiChallengeMessage(
 function GuiAuthContent() {
   const searchParams = useSearchParams();
   const callback = searchParams.get("callback")?.trim() ?? "";
-  const purpose = searchParams.get("purpose")?.trim() === "register" ? "register" : "login";
-  const registerNodeId = searchParams.get("nodeId")?.trim() ?? "";
-  const registerNodeName = searchParams.get("nodeName")?.trim() ?? "";
+  const purposeParam = searchParams.get("purpose")?.trim() ?? "login";
+  const purpose: GuiAuthPurpose = parseGuiAuthPurpose(purposeParam);
+  const actionNodeId = searchParams.get("nodeId")?.trim() ?? "";
+  const actionNodeName = searchParams.get("nodeName")?.trim() ?? "";
   const registerPublicKey = searchParams.get("publicKey")?.trim() ?? "";
+  const isLogin = purpose === "login";
   const isRegister = purpose === "register";
+  const requiresNodeId = purpose === "register" || purpose === "offboard" || purpose === "delete_node";
+  const usesDesktopCallback = !isLogin;
   const { publicKey, connected, signMessage, wallet: activeWallet } = useWallet();
   const [status, setStatus] = useState<string>("Connect your wallet to continue.");
   const [busy, setBusy] = useState(false);
@@ -105,9 +128,9 @@ function GuiAuthContent() {
       signatureBase64: string;
       signedMessageBase64?: string;
     }) => {
-      if (isRegister) {
+      if (usesDesktopCallback) {
         if (!callback) {
-          throw new Error("Registration sign-in requires a desktop callback URL.");
+          throw new Error("Desktop action requires a callback URL.");
         }
         const url = new URL(callback);
         url.searchParams.set("wallet", payload.wallet);
@@ -153,16 +176,91 @@ function GuiAuthContent() {
       }
       window.location.href = url.toString();
     },
-    [callback, isRegister],
+    [callback, usesDesktopCallback],
   );
+
+  const actionTitle = (() => {
+    switch (purpose) {
+      case "register":
+        return "AICW Node Desktop Registration";
+      case "offboard":
+        return "AICW Node Desktop Offboard";
+      case "unstake":
+        return "AICW Node Desktop Unstake";
+      case "delete_node":
+        return "AICW Node Desktop Delete";
+      default:
+        return "AICW Node Desktop Sign-In";
+    }
+  })();
+
+  const actionDescription = (() => {
+    switch (purpose) {
+      case "register":
+        return "Sign with your Solana wallet to register this node for your desktop app. Your node private key stays on this computer.";
+      case "offboard":
+        return "Sign with your Solana wallet to offboard this node and begin the unstake process.";
+      case "unstake":
+        return "Sign with your Solana wallet to request unstaking for your operator wallet.";
+      case "delete_node":
+        return "Sign with your Solana wallet to delete this node registration.";
+      default:
+        return "Sign in with your Solana wallet to link the desktop app with your staking and node registration on AICW Node Web.";
+    }
+  })();
+
+  const prepareStatus = (() => {
+    switch (purpose) {
+      case "register":
+        return "Preparing secure node registration challenge…";
+      case "offboard":
+        return "Preparing secure offboard challenge…";
+      case "unstake":
+        return "Preparing secure unstake challenge…";
+      case "delete_node":
+        return "Preparing secure delete challenge…";
+      default:
+        return "Preparing secure login challenge…";
+    }
+  })();
+
+  const approveStatus = (() => {
+    switch (purpose) {
+      case "register":
+        return "Approve the node registration request in your wallet…";
+      case "offboard":
+        return "Approve the offboard request in your wallet…";
+      case "unstake":
+        return "Approve the unstake request in your wallet…";
+      case "delete_node":
+        return "Approve the delete request in your wallet…";
+      default:
+        return "Approve the sign-in request in your wallet…";
+    }
+  })();
+
+  const buttonLabel = (() => {
+    switch (purpose) {
+      case "register":
+        return "Sign to Register Node";
+      case "offboard":
+        return "Sign to Offboard Node";
+      case "unstake":
+        return "Sign to Request Unstake";
+      case "delete_node":
+        return "Sign to Delete Node";
+      default:
+        return "Sign in for Desktop App";
+    }
+  })();
 
   const handleSignIn = useCallback(async () => {
     if (!wallet) {
       setStatus("Connect your wallet first.");
       return;
     }
-    if (isRegister && !registerNodeId) {
-      setStatus("Registration request is missing node ID.");
+    if (requiresNodeId && !actionNodeId) {
+      setStatus(`${purpose} request is missing node ID.`);
       return;
     }
     if (!publicKey) {
@@ -182,36 +280,29 @@ function GuiAuthContent() {
     }
 
     setBusy(true);
-    setStatus(
-      isRegister
-        ? "Preparing secure node registration challenge…"
-        : "Preparing secure login challenge…",
-    );
+    setStatus(prepareStatus);
 
     try {
-      const challengeParams = new URLSearchParams({ wallet });
-      if (isRegister) {
-        challengeParams.set("purpose", "register");
-        challengeParams.set("nodeId", registerNodeId);
-        if (registerNodeName) challengeParams.set("nodeName", registerNodeName);
-        if (registerPublicKey) challengeParams.set("publicKey", registerPublicKey);
+      const challengeParams = new URLSearchParams({ wallet, purpose });
+      if (requiresNodeId) {
+        challengeParams.set("nodeId", actionNodeId);
+      }
+      if (actionNodeName) {
+        challengeParams.set("nodeName", actionNodeName);
+      }
+      if (isRegister && registerPublicKey) {
+        challengeParams.set("publicKey", registerPublicKey);
       }
 
       const challengeRes = await fetch(`/api/auth/challenge?${challengeParams.toString()}`, {
         cache: "no-store",
       });
       if (!challengeRes.ok) {
-        throw new Error(
-          isRegister ? "Failed to create registration challenge" : "Failed to create login challenge",
-        );
+        throw new Error("Failed to create wallet challenge");
       }
 
       const challenge = (await challengeRes.json()) as ChallengeResponse;
-      setStatus(
-        isRegister
-          ? "Approve the node registration request in your wallet…"
-          : "Approve the sign-in request in your wallet…",
-      );
+      setStatus(approveStatus);
 
       const messageBytes = new TextEncoder().encode(challenge.message);
       const signed = await signGuiChallengeMessage(
@@ -234,13 +325,17 @@ function GuiAuthContent() {
       setBusy(false);
     }
   }, [
+    actionNodeId,
+    actionNodeName,
     activeWallet?.adapter,
+    approveStatus,
     finishWithCallback,
     isRegister,
+    prepareStatus,
     publicKey,
-    registerNodeId,
-    registerNodeName,
+    purpose,
     registerPublicKey,
+    requiresNodeId,
     signMessage,
     wallet,
   ]);
@@ -255,12 +350,10 @@ function GuiAuthContent() {
     <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-6 py-12">
       <div className="rounded-xl border border-surface-border bg-surface-panel p-8 shadow-sm">
         <h1 className="text-xl font-semibold text-content-primary">
-          {isRegister ? "AICW Node Desktop Registration" : "AICW Node Desktop Sign-In"}
+          {actionTitle}
         </h1>
         <p className="mt-2 text-sm text-content-secondary">
-          {isRegister
-            ? "Sign with your Solana wallet to register this node for your desktop app. Your node private key stays on this computer."
-            : "Sign in with your Solana wallet to link the desktop app with your staking and node registration on AICW Node Web."}
+          {actionDescription}
         </p>
 
         <div className="mt-6 flex flex-col gap-4">
@@ -271,7 +364,7 @@ function GuiAuthContent() {
             disabled={!connected || busy}
             className="rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
           >
-            {busy ? "Signing…" : isRegister ? "Sign to Register Node" : "Sign in for Desktop App"}
+            {busy ? "Signing…" : buttonLabel}
           </button>
         </div>
 

@@ -126,6 +126,17 @@ export async function findNodeByIdAndOwner(input: {
   return rows[0] ? mapNode(rows[0]) : null;
 }
 
+export async function findNodeById(nodeId: string): Promise<NodeRecord | null> {
+  const pool = await getPool();
+  const [rows] = await pool.query<NodeRow[]>(
+    `SELECT ${NODE_SELECT} FROM nodes
+     WHERE node_id = :nodeId
+     LIMIT 1`,
+    { nodeId: nodeId.trim() },
+  );
+  return rows[0] ? mapNode(rows[0]) : null;
+}
+
 export async function listNodesByOwner(ownerWallet: string): Promise<NodeRecord[]> {
   const pool = await getPool();
   const [rows] = await pool.query<NodeRow[]>(

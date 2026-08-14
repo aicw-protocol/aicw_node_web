@@ -12,6 +12,10 @@ import { DesktopAppPanel } from "@/components/dashboard/DesktopAppPanel";
 import { DeleteNodeConfirmModal } from "@/components/dashboard/DeleteNodeConfirmModal";
 import { OffboardWizard } from "@/components/dashboard/OffboardWizard";
 import { UNSTAKE_COOLDOWN_HOURS } from "@/lib/unstakeConstants";
+import {
+  signGuiWalletAction,
+  walletCanSignMessages,
+} from "@/lib/walletSignChallenge";
 
 interface RegistrationEligibility {
   registeredNodeCount: number;
@@ -72,7 +76,7 @@ function NodeStatus({
 }
 
 export function DashboardOverview() {
-  const { publicKey, connected } = useWallet();
+  const { publicKey, connected, signMessage, wallet: activeWallet } = useWallet();
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [nodeToDelete, setNodeToDelete] = useState<NodeRecord | null>(null);
@@ -125,11 +129,35 @@ export function DashboardOverview() {
   const handleDeleteConfirm = async () => {
     if (!nodeToDelete || !publicKey) return;
 
+    if (!walletCanSignMessages(activeWallet?.adapter, signMessage)) {
+      toast.error("This wallet does not support message signing.");
+      return;
+    }
+
     setDeleting(true);
     try {
+      const signed = await signGuiWalletAction({
+        adapter: activeWallet?.adapter,
+        publicKey,
+        signMessage,
+        wallet: publicKey.toBase58(),
+        purpose: "delete_node",
+        nodeId: nodeToDelete.nodeId,
+      });
+
       const res = await fetch(
-        `/api/nodes/${encodeURIComponent(nodeToDelete.nodeId)}?wallet=${encodeURIComponent(publicKey.toBase58())}`,
-        { method: "DELETE" },
+        `/api/nodes/${encodeURIComponent(nodeToDelete.nodeId)}`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            wallet: signed.wallet,
+            challengeToken: signed.challengeToken,
+            signatureBase64: signed.signatureBase64,
+            signedMessageBase64: signed.signedMessageBase64,
+            message: signed.message,
+          }),
+        },
       );
 
       const json = (await res.json()) as { error?: string };
