@@ -84,17 +84,15 @@ export function GuideDesktopDownload({
         ) : (
           <>
             <li>
-              Unzip the download so{" "}
-              <code className="text-content-primary">aicw-node-setup-windows-amd64.exe</code> and{" "}
-              <code className="text-content-primary">aicw-node.exe</code> are in the same folder.
+              Run{" "}
+              <code className="text-content-primary">{guiName}</code> and follow the installer.
             </li>
-            <li>Run the setup app and accept the license.</li>
+            <li>Open AICW Node from the Start menu or desktop shortcut and accept the license.</li>
           </>
         )}
         <li>
-          The app copies{" "}
-          <code className="text-content-primary">{engineName}</code> into{" "}
-          <code className="text-content-primary">{installPath}</code> automatically.
+          Node files are stored in{" "}
+          <code className="text-content-primary">{installPath}</code>.
         </li>
       </ol>
     );

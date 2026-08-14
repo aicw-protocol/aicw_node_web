@@ -37,7 +37,7 @@ export const RELEASE_BINARIES = {
 
 /** Desktop GUI release filenames (see aicw_node/scripts/build-gui.*). */
 export const RELEASE_GUI_ARTIFACTS = {
-  windows: "aicw-node-setup-windows-amd64.zip",
+  windows: "aicw-node-setup-windows-amd64-installer.exe",
   linux: "aicw-node-setup-linux-amd64.zip",
   macos: "aicw-node-setup-darwin-universal.app.zip",
 } as const;
