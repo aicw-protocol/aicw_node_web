@@ -77,7 +77,7 @@ export function GuideDesktopDownload({
           <>
             <li>
               Unzip the download, then:{" "}
-              <code className="text-content-primary">chmod +x {guiName.replace(".zip", "")} aicw-node-linux-amd64</code>
+              <code className="text-content-primary">chmod +x aicw-node-setup-linux-amd64 aicw-node</code>
             </li>
             <li>Run the setup app and accept the license.</li>
           </>
