@@ -4,8 +4,9 @@ import { isDatabaseConfigured } from "@/lib/db/config";
 import { countNodesByOwner } from "@/lib/db/nodes";
 import { requestUnstakeForWallet } from "@/lib/db/staking";
 import { logUnstakeEvent } from "@/lib/db/unstakeEvents";
-import { UNSTAKE_COOLDOWN_HOURS } from "@/lib/unstakeConstants";
+import { formatUnstakeReturnWaitShort, isImmediateUnstakeReturn } from "@/lib/unstakeConstants";
 import { verifyWalletActionSignature } from "@/lib/guiAuth";
+import { processDueUnstakeReturns } from "@/lib/offboard";
 
 export const dynamic = "force-dynamic";
 
@@ -96,11 +97,16 @@ export async function POST(request: Request) {
     }
 
     const stake = await requestUnstakeForWallet({ wallet: ownerWallet });
+
+    if (isImmediateUnstakeReturn()) {
+      await processDueUnstakeReturns();
+    }
+
     await logUnstakeEvent({
       stakingId: stake.id,
       wallet: ownerWallet,
       eventType: "unstake_requested",
-      detail: `Unstake requested from web staking page; ${UNSTAKE_COOLDOWN_HOURS}h wait applies`,
+      detail: `Unstake requested from web staking page; ${formatUnstakeReturnWaitShort()} wait applies`,
     });
     await logUnstakeEvent({
       stakingId: stake.id,

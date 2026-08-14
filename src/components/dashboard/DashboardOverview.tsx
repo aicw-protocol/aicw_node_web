@@ -11,7 +11,6 @@ import { WalletButton } from "@/components/WalletButton";
 import { DesktopAppPanel } from "@/components/dashboard/DesktopAppPanel";
 import { DeleteNodeConfirmModal } from "@/components/dashboard/DeleteNodeConfirmModal";
 import { OffboardWizard } from "@/components/dashboard/OffboardWizard";
-import { UNSTAKE_COOLDOWN_HOURS } from "@/lib/unstakeConstants";
 import {
   signGuiWalletAction,
   walletCanSignMessages,

@@ -4,7 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import toast from "react-hot-toast";
 import type { NodeRecord } from "@/lib/db/types";
-import { UNSTAKE_COOLDOWN_HOURS } from "@/lib/unstakeConstants";
+import {
+  formatUnstakeReturnWait,
+  formatUnstakeReturnWaitShort,
+} from "@/lib/unstakeConstants";
 import {
   signGuiWalletAction,
   walletCanSignMessages,
@@ -71,7 +74,7 @@ export function OffboardWizard({ wallet, nodes, onUpdated }: OffboardWizardProps
     const label = node.nodeName ?? node.nodeId;
     if (
       !window.confirm(
-        `Remove ${label} and begin unstaking?\n\nIf this is your last node, staked SOL returns after ${UNSTAKE_COOLDOWN_HOURS} hours.`,
+        `Remove ${label} and begin unstaking?\n\nIf this is your last node, staked SOL returns ${formatUnstakeReturnWait()}.`,
       )
     ) {
       return;
@@ -141,8 +144,7 @@ export function OffboardWizard({ wallet, nodes, onUpdated }: OffboardWizardProps
       <h2 className="text-lg font-medium text-content-primary">Offboard &amp; Unstake</h2>
       <p className="mt-2 text-sm text-content-secondary">
         Remove nodes one at a time. When your last node is removed, staked SOL is
-        scheduled for return to your wallet after a {UNSTAKE_COOLDOWN_HOURS}-hour
-        waiting period.
+        scheduled for return to your wallet {formatUnstakeReturnWaitShort()}.
       </p>
 
       {pending ? (

@@ -12,7 +12,7 @@ import {
 import { logUnstakeEvent } from "@/lib/db/unstakeEvents";
 import type { StakingRecord } from "@/lib/db/types";
 import { removeNodeFromMembershipWhitelist } from "@/lib/consul/membershipWhitelist";
-import { NODE_ACTIVE_PING_MS, UNSTAKE_COOLDOWN_HOURS } from "@/lib/unstakeConstants";
+import { formatUnstakeReturnWaitShort, isImmediateUnstakeReturn, NODE_ACTIVE_PING_MS } from "@/lib/unstakeConstants";
 
 export type OffboardPhase =
   | "node_removed"
@@ -114,7 +114,7 @@ export async function offboardNode(input: {
       remainingNodes: 0,
       stake: pending,
       returnAvailableAt: pending.returnAvailableAt,
-      message: `Unstake already requested. SOL will be returned after the ${UNSTAKE_COOLDOWN_HOURS}-hour waiting period.`,
+      message: `Unstake already requested. SOL will be returned ${formatUnstakeReturnWaitShort()}.`,
     };
   }
 
@@ -138,13 +138,17 @@ export async function offboardNode(input: {
     nodeName: nodeName ?? node.nodeName,
   });
 
+  if (isImmediateUnstakeReturn()) {
+    await processDueUnstakeReturns();
+  }
+
   await logUnstakeEvent({
     stakingId: stake.id,
     wallet,
     nodeId,
     nodeName: nodeName ?? node.nodeName,
     eventType: "unstake_requested",
-    detail: `Unstake approved; return scheduled after ${UNSTAKE_COOLDOWN_HOURS} hours`,
+    detail: `Unstake approved; return scheduled ${formatUnstakeReturnWaitShort()}`,
   });
 
   await logUnstakeEvent({
@@ -166,7 +170,7 @@ export async function offboardNode(input: {
     remainingNodes: 0,
     stake,
     returnAvailableAt: stake.returnAvailableAt,
-    message: `Unstake approved. Staked SOL will be returned to ${wallet} after ${UNSTAKE_COOLDOWN_HOURS} hours.`,
+    message: `Unstake approved. Staked SOL will be returned to ${wallet} ${formatUnstakeReturnWaitShort()}.`,
   };
 }
 

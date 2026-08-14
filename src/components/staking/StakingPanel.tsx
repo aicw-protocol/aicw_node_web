@@ -15,7 +15,10 @@ import {
   meetsMinimumStake,
 } from "@/lib/stakingCurve";
 import type { StakingRecord } from "@/lib/db/types";
-import { UNSTAKE_COOLDOWN_HOURS } from "@/lib/unstakeConstants";
+import {
+  formatUnstakeReturnWait,
+  formatUnstakeReturnWaitShort,
+} from "@/lib/unstakeConstants";
 import {
   signGuiWalletAction,
   walletCanSignMessages,
@@ -189,7 +192,7 @@ export function StakingPanel() {
         throw new Error(json.error ?? "Unstake request failed");
       }
       toast.success(
-        `Unstake approved — SOL returns after ${UNSTAKE_COOLDOWN_HOURS} hours`,
+        `Unstake approved — SOL returns ${formatUnstakeReturnWaitShort()}`,
       );
       await loadData();
     } catch (error) {
@@ -253,7 +256,7 @@ export function StakingPanel() {
         <p className="mt-2 text-sm text-content-secondary">
           Send SOL to the treasury wallet when the fee curve requires it. After
           unstake approval, funds return to your wallet automatically after{" "}
-          {UNSTAKE_COOLDOWN_HOURS} hours.
+          {formatUnstakeReturnWait()}.
         </p>
 
         {!connected ? (
@@ -282,7 +285,7 @@ export function StakingPanel() {
                     Unstake approved — returns{" "}
                     {pendingUnstake.returnAvailableAt
                       ? new Date(pendingUnstake.returnAvailableAt).toLocaleString()
-                      : `after ${UNSTAKE_COOLDOWN_HOURS}h`}
+                      : formatUnstakeReturnWaitShort()}
                   </p>
                 ) : null}
               </div>
