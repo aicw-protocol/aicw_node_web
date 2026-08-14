@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isDatabaseConfigured } from "@/lib/db/config";
-import { listNodes, registerNode, deleteNodeById } from "@/lib/db/nodes";
+import { listNodes, registerNode } from "@/lib/db/nodes";
 import { assertCanRegisterNode } from "@/lib/nodeEligibility";
 import { addNodeToMembershipWhitelist } from "@/lib/consul/membershipWhitelist";
 import { isConsulWhitelistEnabled } from "@/lib/consul/config";
@@ -154,18 +154,20 @@ export async function POST(request: Request) {
         { status: 201 },
       );
     } catch (whitelistError) {
-      try {
-        await deleteNodeById(node.id);
-      } catch (rollbackError) {
-        console.error("Failed to rollback node after whitelist error:", rollbackError);
-      }
-
-      const message =
-        whitelistError instanceof Error
-          ? whitelistError.message
-          : "Failed to add node to Consul membership whitelist";
       console.error("POST /api/nodes whitelist failed:", whitelistError);
-      return NextResponse.json({ error: message }, { status: 502 });
+      return NextResponse.json(
+        {
+          node,
+          whitelist: {
+            added: false,
+            reason:
+              whitelistError instanceof Error
+                ? whitelistError.message
+                : "Failed to add node to Consul membership whitelist",
+          },
+        },
+        { status: 201 },
+      );
     }
   } catch (error) {
     const message =

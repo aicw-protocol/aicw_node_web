@@ -91,12 +91,13 @@ export async function addNodeToMembershipWhitelist(
     headers["X-Consul-Token"] = token;
   }
 
-  const url = `${baseUrl}/v1/kv/${encodeURIComponent(key)}`;
+	const url = `${baseUrl}/v1/kv/${encodeURIComponent(key)}`;
   const res = await fetch(url, {
     method: "PUT",
     headers,
     body,
     cache: "no-store",
+    signal: AbortSignal.timeout(5000),
   });
 
   if (!res.ok) {
