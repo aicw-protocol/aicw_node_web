@@ -42,21 +42,21 @@ export function ReleaseUpdateBanner() {
   return (
     <div
       role="status"
-      className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+      className="border-b border-surface-border bg-surface-panel/90 px-4 py-[7px] text-sm text-content-secondary"
     >
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2">
         <p>
-          <span className="font-medium text-amber-50">
+          <span className="font-medium text-content-primary">
             AICW Node v{release.latestVersion} is available
           </span>
-          <span className="text-amber-100/90"> — download the latest desktop app.</span>
+          <span className="text-content-muted"> — download the latest desktop app.</span>
         </p>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <a
             href={release.releasesUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-lg bg-amber-400 px-3 py-1.5 text-sm font-medium text-slate-950 transition hover:bg-amber-300"
+            className="rounded-md bg-neutral-200 px-3 py-0.5 text-sm font-medium leading-tight text-black transition hover:bg-neutral-300"
           >
             Download v{release.latestVersion}
           </a>
@@ -66,7 +66,7 @@ export function ReleaseUpdateBanner() {
               window.localStorage.setItem(dismissKey(release.tagName), "1");
               setVisible(false);
             }}
-            className="text-sm text-amber-100/80 transition hover:text-amber-50"
+            className="text-sm text-content-muted transition hover:text-content-primary"
           >
             Dismiss
           </button>
