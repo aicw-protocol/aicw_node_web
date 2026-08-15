@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { PublicKey } from "@solana/web3.js";
 import { isDatabaseConfigured } from "@/lib/db/config";
-import { deleteNodeByOwner } from "@/lib/db/nodes";
-import { removeNodeFromMembershipWhitelist } from "@/lib/consul/membershipWhitelist";
+import { offboardNode } from "@/lib/offboard";
 import { verifyWalletActionSignature } from "@/lib/guiAuth";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +12,7 @@ interface RouteContext {
 
 /**
  * DELETE /api/nodes/:nodeId
- * Remove a node registration owned by the signed wallet.
+ * Legacy alias — same as POST /api/offboard/node (full network removal + unstake when last node).
  */
 export async function DELETE(request: Request, { params }: RouteContext) {
   if (!isDatabaseConfigured()) {
@@ -30,6 +29,7 @@ export async function DELETE(request: Request, { params }: RouteContext) {
 
   let body: {
     wallet?: string;
+    nodeName?: string;
     challengeToken?: string;
     signatureBase64?: string;
     signedMessageBase64?: string;
@@ -56,7 +56,7 @@ export async function DELETE(request: Request, { params }: RouteContext) {
     return NextResponse.json(
       {
         error:
-          "challengeToken, signatureBase64, and message are required to delete a node",
+          "challengeToken, signatureBase64, and message are required to remove a node",
       },
       { status: 400 },
     );
@@ -70,21 +70,36 @@ export async function DELETE(request: Request, { params }: RouteContext) {
 
   let ownerWallet: string;
   try {
-    const verified = await verifyWalletActionSignature({
+    const offboardVerified = await verifyWalletActionSignature({
       challengeToken,
       wallet,
       signatureBase64,
       signedMessageBase64,
       message,
-      expectedPurpose: "delete_node",
+      expectedPurpose: "offboard",
       nodeId,
+      nodeName: body.nodeName,
     });
 
-    if (!verified.ok) {
-      return NextResponse.json({ error: verified.error }, { status: 401 });
-    }
+    if (offboardVerified.ok) {
+      ownerWallet = offboardVerified.wallet;
+    } else {
+      const legacyVerified = await verifyWalletActionSignature({
+        challengeToken,
+        wallet,
+        signatureBase64,
+        signedMessageBase64,
+        message,
+        expectedPurpose: "delete_node",
+        nodeId,
+      });
 
-    ownerWallet = verified.wallet;
+      if (!legacyVerified.ok) {
+        return NextResponse.json({ error: legacyVerified.error }, { status: 401 });
+      }
+
+      ownerWallet = legacyVerified.wallet;
+    }
   } catch (error) {
     console.error("DELETE /api/nodes signature verification failed:", error);
     return NextResponse.json(
@@ -94,26 +109,16 @@ export async function DELETE(request: Request, { params }: RouteContext) {
   }
 
   try {
-    const deleted = await deleteNodeByOwner({ nodeId, ownerWallet });
-
-    if (!deleted) {
-      return NextResponse.json(
-        { error: "Node not found or not owned by this wallet" },
-        { status: 404 },
-      );
-    }
-
-    try {
-      await removeNodeFromMembershipWhitelist(nodeId);
-    } catch (whitelistError) {
-      console.error("DELETE /api/nodes consul cleanup failed:", whitelistError);
-    }
-
-    return NextResponse.json({ success: true, nodeId });
+    const result = await offboardNode({
+      wallet: ownerWallet,
+      nodeId,
+      nodeName: body.nodeName?.trim() || null,
+    });
+    return NextResponse.json(result);
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to delete node";
+    const errMessage =
+      error instanceof Error ? error.message : "Failed to remove node";
     console.error("DELETE /api/nodes/[nodeId] failed:", error);
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: errMessage }, { status: 400 });
   }
 }

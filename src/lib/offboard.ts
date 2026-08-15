@@ -65,7 +65,7 @@ export async function offboardNode(input: {
     nodeId,
     nodeName: nodeName ?? node.nodeName,
     eventType: "node_offboard_started",
-    detail: "Offboard initiated from GUI or web dashboard",
+    detail: "Remove node initiated from GUI or web dashboard",
   });
 
   const deleted = await deleteNodeByOwner({ nodeId, ownerWallet: wallet });
@@ -98,7 +98,7 @@ export async function offboardNode(input: {
       remainingNodes,
       stake: null,
       returnAvailableAt: null,
-      message: `${remainingNodes} registered node(s) remain. Unstake will begin when all nodes are removed.`,
+      message: `${remainingNodes} registered node(s) remain. Staked SOL returns when all nodes are removed.`,
     };
   }
 

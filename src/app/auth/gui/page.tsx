@@ -184,11 +184,11 @@ function GuiAuthContent() {
       case "register":
         return "AICW Node Desktop Registration";
       case "offboard":
-        return "AICW Node Desktop Offboard";
+        return "AICW Remove Node";
       case "unstake":
-        return "AICW Node Desktop Unstake";
+        return "AICW Request Stake Return";
       case "delete_node":
-        return "AICW Node Desktop Delete";
+        return "AICW Remove Node";
       default:
         return "AICW Node Desktop Sign-In";
     }
@@ -199,11 +199,11 @@ function GuiAuthContent() {
       case "register":
         return "Sign with your Solana wallet to register this node for your desktop app. Your node private key stays on this computer.";
       case "offboard":
-        return "Sign with your Solana wallet to offboard this node and begin the unstake process.";
+        return "Sign with your Solana wallet to remove this node from the network. If it is your last node, staked SOL will be scheduled for return.";
       case "unstake":
-        return "Sign with your Solana wallet to request unstaking for your operator wallet.";
+        return "Sign with your Solana wallet to request return of staked SOL.";
       case "delete_node":
-        return "Sign with your Solana wallet to delete this node registration.";
+        return "Sign with your Solana wallet to remove this node from the network.";
       default:
         return "Sign in with your Solana wallet to link the desktop app with your staking and node registration on AICW Node Web.";
     }
@@ -214,11 +214,11 @@ function GuiAuthContent() {
       case "register":
         return "Preparing secure node registration challenge…";
       case "offboard":
-        return "Preparing secure offboard challenge…";
+        return "Preparing secure remove-node challenge…";
       case "unstake":
-        return "Preparing secure unstake challenge…";
+        return "Preparing secure stake-return challenge…";
       case "delete_node":
-        return "Preparing secure delete challenge…";
+        return "Preparing secure remove-node challenge…";
       default:
         return "Preparing secure login challenge…";
     }
@@ -229,11 +229,11 @@ function GuiAuthContent() {
       case "register":
         return "Approve the node registration request in your wallet…";
       case "offboard":
-        return "Approve the offboard request in your wallet…";
+        return "Approve the remove-node request in your wallet…";
       case "unstake":
-        return "Approve the unstake request in your wallet…";
+        return "Approve the stake-return request in your wallet…";
       case "delete_node":
-        return "Approve the delete request in your wallet…";
+        return "Approve the remove-node request in your wallet…";
       default:
         return "Approve the sign-in request in your wallet…";
     }
@@ -244,11 +244,11 @@ function GuiAuthContent() {
       case "register":
         return "Sign to Register Node";
       case "offboard":
-        return "Sign to Offboard Node";
+        return "Sign to Remove Node";
       case "unstake":
-        return "Sign to Request Unstake";
+        return "Sign to Request Stake Return";
       case "delete_node":
-        return "Sign to Delete Node";
+        return "Sign to Remove Node";
       default:
         return "Sign in for Desktop App";
     }

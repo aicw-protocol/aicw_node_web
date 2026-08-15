@@ -10,7 +10,7 @@ import { isNodePingActive } from "@/lib/nodePing";
 import { WalletButton } from "@/components/WalletButton";
 import { DesktopAppPanel } from "@/components/dashboard/DesktopAppPanel";
 import { DeleteNodeConfirmModal } from "@/components/dashboard/DeleteNodeConfirmModal";
-import { OffboardWizard } from "@/components/dashboard/OffboardWizard";
+import { RemoveNodeStatusPanel } from "@/components/dashboard/RemoveNodeStatusPanel";
 import {
   signGuiWalletAction,
   walletCanSignMessages,
@@ -140,60 +140,42 @@ export function DashboardOverview() {
         publicKey,
         signMessage,
         wallet: publicKey.toBase58(),
-        purpose: "delete_node",
+        purpose: "offboard",
         nodeId: nodeToDelete.nodeId,
+        nodeName: nodeToDelete.nodeName ?? undefined,
       });
 
-      const res = await fetch(
-        `/api/nodes/${encodeURIComponent(nodeToDelete.nodeId)}`,
-        {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            wallet: signed.wallet,
-            challengeToken: signed.challengeToken,
-            signatureBase64: signed.signatureBase64,
-            signedMessageBase64: signed.signedMessageBase64,
-            message: signed.message,
-          }),
-        },
-      );
+      const res = await fetch("/api/offboard/node", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          wallet: signed.wallet,
+          nodeId: nodeToDelete.nodeId,
+          nodeName: nodeToDelete.nodeName,
+          challengeToken: signed.challengeToken,
+          signatureBase64: signed.signatureBase64,
+          signedMessageBase64: signed.signedMessageBase64,
+          message: signed.message,
+        }),
+      });
 
-      const json = (await res.json()) as { error?: string };
+      const json = (await res.json()) as { error?: string; message?: string };
 
       if (!res.ok) {
-        toast.error(json.error ?? "Failed to delete node");
+        toast.error(json.error ?? "Failed to remove node");
         return;
       }
 
-      setData((prev) => {
-        if (!prev) return prev;
-        const nodes = prev.nodes.filter((node) => node.id !== nodeToDelete.id);
-        const totals = nodes.reduce(
-          (acc, node) => ({
-            referralWalletOpens: acc.referralWalletOpens + node.referralWalletOpens,
-            rewardSol: acc.rewardSol + node.rewardSol,
-            rewardToken: acc.rewardToken + node.rewardToken,
-          }),
-          { referralWalletOpens: 0, rewardSol: 0, rewardToken: 0 },
-        );
-
-        return {
-          ...prev,
-          nodes,
-          totals,
-          eligibility: {
-            ...prev.eligibility,
-            registeredNodeCount: Math.max(0, prev.eligibility.registeredNodeCount - 1),
-          },
-        };
-      });
-
       setNodeToDelete(null);
-      toast.success("Node removed from your dashboard");
+      toast.success(
+        json.message ??
+          "Node removed from the network. Use Remove node in the desktop app to delete local files.",
+      );
+      await loadDashboard();
       window.dispatchEvent(new Event("aicw-node-registered"));
+      window.dispatchEvent(new Event("aicw-staking-updated"));
     } catch {
-      toast.error("Delete request failed");
+      toast.error("Remove node request failed");
     } finally {
       setDeleting(false);
     }
@@ -317,10 +299,10 @@ export function DashboardOverview() {
                     <button
                       type="button"
                       onClick={() => setNodeToDelete(node)}
-                      className="text-xs text-content-muted transition hover:text-content-primary"
+                      className="rounded-lg border border-red-500/30 px-2.5 py-1 text-xs text-red-300 transition hover:bg-red-500/10"
                       aria-label={`Remove node ${node.nodeName ?? node.nodeId}`}
                     >
-                      Remove
+                      Remove node
                     </button>
                   </div>
                 </div>
@@ -356,17 +338,14 @@ export function DashboardOverview() {
         activeStake={data.activeStake}
       />
 
-      <OffboardWizard
-        wallet={publicKey.toBase58()}
-        nodes={data.nodes}
-        onUpdated={loadDashboard}
-      />
+      <RemoveNodeStatusPanel wallet={publicKey.toBase58()} />
 
       {nodeToDelete ? (
         <DeleteNodeConfirmModal
           node={nodeToDelete}
           open
           deleting={deleting}
+          isLastNode={data.nodes.length === 1}
           onCancel={() => {
             if (!deleting) setNodeToDelete(null);
           }}

@@ -19,4 +19,31 @@ eligibility:
     mode: whitelist
     source: consul
     consul_path: mpc_eligibility/membership_whitelist/
+
+# Committee policy — must be byte-for-byte identical on every node in the network.
+# keygen_filter_enabled: true uses tier-sized committees per wallet (not all ready peers).
+committee_policy:
+  version: "2"
+  cap: 7
+  mpc_threshold: 2
+  keygen_filter_enabled: true
+  tiers:
+    - max_active: 4
+      committee_size: 3
+      spare: 0
+    - max_active: 10
+      committee_size: 4
+      spare: 1
+    - max_active: 30
+      committee_size: 5
+      spare: 2
+    - max_active: 100
+      committee_size: 6
+      spare: 3
+    - max_active: 999999
+      committee_size: 7
+      spare: 4
+
+ecdh_gate:
+  timeout_seconds: 120
 `;

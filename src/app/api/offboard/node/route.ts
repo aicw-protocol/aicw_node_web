@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * POST /api/offboard/node
- * Stop/offboard a single node: deregister, and if this was the last node,
- * begin the 72-hour unstake return process for the operator wallet.
+ * Remove a single node: deregister, and if this was the last node,
+ * begin the stake return process for the operator wallet.
  */
 export async function POST(request: Request) {
   if (!isDatabaseConfigured()) {

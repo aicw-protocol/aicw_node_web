@@ -106,14 +106,14 @@ function buildChallengeMessage(
       break;
     case "offboard":
       lines = [
-        "AICW Node Offboard",
+        "AICW Remove Node",
         `Wallet: ${wallet}`,
         `Node ID: ${options.nodeId ?? ""}`,
       ];
       break;
     case "delete_node":
       lines = [
-        "AICW Node Delete",
+        "AICW Remove Node",
         `Wallet: ${wallet}`,
         `Node ID: ${options.nodeId ?? ""}`,
       ];
