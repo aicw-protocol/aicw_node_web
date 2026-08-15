@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { ReleaseUpdateBanner } from "@/components/releases/ReleaseUpdateBanner";
 import { WalletButton } from "@/components/WalletButton";
 
 const NAV_ITEMS = [
@@ -138,6 +139,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
+        <ReleaseUpdateBanner />
         <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">{children}</main>
       </div>
     </div>
