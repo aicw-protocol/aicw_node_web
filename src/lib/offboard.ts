@@ -11,7 +11,7 @@ import {
 } from "@/lib/db/staking";
 import { logUnstakeEvent } from "@/lib/db/unstakeEvents";
 import type { StakingRecord } from "@/lib/db/types";
-import { removeNodeFromMembershipWhitelist } from "@/lib/consul/membershipWhitelist";
+import { purgeNodeFromConsul } from "@/lib/consul/nodeRegistry";
 import { formatUnstakeReturnWaitShort, isImmediateUnstakeReturn, NODE_ACTIVE_PING_MS } from "@/lib/unstakeConstants";
 
 export type OffboardPhase =
@@ -74,7 +74,7 @@ export async function offboardNode(input: {
   }
 
   try {
-    await removeNodeFromMembershipWhitelist(nodeId);
+    await purgeNodeFromConsul(nodeId);
   } catch (error) {
     console.error("offboard consul cleanup failed:", error);
   }
@@ -84,7 +84,8 @@ export async function offboardNode(input: {
     nodeId,
     nodeName: nodeName ?? node.nodeName,
     eventType: "node_deregistered",
-    detail: "Node removed from database and membership whitelist",
+    detail:
+      "Node removed from database, membership whitelist, mpc_node_identity, and ready/",
   });
 
   const remainingNodes = await countNodesByOwner(wallet);
