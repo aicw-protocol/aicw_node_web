@@ -4,6 +4,8 @@ export const NETWORK_CONFIG_TEMPLATE = `# Network configuration for AICW node
 environment: development
 event_initiator_algorithm: ed25519
 event_initiator_pubkey: "085e3dd81362735e85deba4745751bb2fe2f947ab223be27d412f5adfced963d"
+# Reshare-orchestrator initiator (must differ from event_initiator_pubkey above).
+reshare_initiator_pubkey: "50eb1f85764d23d1828cd2a274b8b21189e05ebfe13ab54264a803e2e8d76232"
 chain_code: "5c22c2856d3657a2835bfb05cb2a6dbc9456f9d582550f9f6c06670417ee4086"
 
 nats:
