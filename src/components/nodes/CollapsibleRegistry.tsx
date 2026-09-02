@@ -2,13 +2,24 @@
 
 import { useState } from "react";
 import { NodesOverview } from "@/components/nodes/NodesOverview";
+import type { NodesLoadState } from "@/components/nodes/types";
+import type { NodeListResponse } from "@/lib/db/types";
 
 interface CollapsibleRegistryProps {
-  totalNodes: number;
+  data: NodeListResponse | null;
+  loadState: NodesLoadState;
+  errorMessage: string | null;
+  onReload: () => Promise<void>;
 }
 
-export function CollapsibleRegistry({ totalNodes }: CollapsibleRegistryProps) {
+export function CollapsibleRegistry({
+  data,
+  loadState,
+  errorMessage,
+  onReload,
+}: CollapsibleRegistryProps) {
   const [open, setOpen] = useState(false);
+  const totalNodes = data?.stats.total ?? 0;
 
   const nodeCountLabel =
     totalNodes === 0
@@ -40,7 +51,13 @@ export function CollapsibleRegistry({ totalNodes }: CollapsibleRegistryProps) {
 
       {open ? (
         <div className="border-t border-surface-border px-2 pb-4 pt-2 sm:px-4">
-          <NodesOverview hideStats />
+          <NodesOverview
+            data={data}
+            loadState={loadState}
+            errorMessage={errorMessage}
+            onReload={onReload}
+            hideStats
+          />
         </div>
       ) : null}
     </section>

@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { PublicKey } from "@solana/web3.js";
 import { isDatabaseConfigured } from "@/lib/db/config";
-import { getOffboardStatus, processDueUnstakeReturns } from "@/lib/offboard";
+import { getOffboardStatus } from "@/lib/offboard";
 import { listUnstakeEventsByWallet } from "@/lib/db/unstakeEvents";
-import { isTreasuryReturnConfigured } from "@/lib/returnStake";
 
 export const dynamic = "force-dynamic";
 
@@ -28,20 +27,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    let status = await getOffboardStatus(wallet);
-
-    // Best-effort: if return is due and treasury is configured, process now
-    // (cron remains the primary production path).
-    if (status.isReturnDue && isTreasuryReturnConfigured()) {
-      try {
-        await processDueUnstakeReturns();
-        status = await getOffboardStatus(wallet);
-      } catch (processError) {
-        console.error("GET /api/offboard/status auto-return failed:", processError);
-      }
-    }
-
-    const events = await listUnstakeEventsByWallet(wallet, 30);
+    const [status, events] = await Promise.all([
+      getOffboardStatus(wallet),
+      listUnstakeEventsByWallet(wallet, 30),
+    ]);
     return NextResponse.json({ ...status, events });
   } catch (error) {
     const message =

@@ -1,49 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { NodeListResponse } from "@/lib/db/types";
+import type { NodesLoadState } from "@/components/nodes/types";
 import { isNodePingActive } from "@/lib/nodePing";
 import { GlobeWorldMap } from "@/components/nodes/GlobeWorldMap";
 import { LiveCounter } from "@/components/nodes/LiveCounter";
 import { RecentRegistrationTicker } from "@/components/nodes/RecentRegistrationTicker";
 
-type HeroState = "loading" | "ready" | "error" | "unconfigured";
+interface NodesHeroProps {
+  data: NodeListResponse | null;
+  loadState: NodesLoadState;
+}
 
-export function NodesHero() {
-  const [state, setState] = useState<HeroState>("loading");
-  const [data, setData] = useState<NodeListResponse | null>(null);
-
-  const loadNodes = useCallback(async () => {
-    try {
-      const res = await fetch("/api/nodes", { cache: "no-store" });
-      if (res.status === 503) {
-        setState("unconfigured");
-        return;
-      }
-      if (!res.ok) throw new Error("failed");
-      setData((await res.json()) as NodeListResponse);
-      setState("ready");
-    } catch {
-      setState("error");
-    }
-  }, []);
-
-  useEffect(() => {
-    loadNodes();
-  }, [loadNodes]);
-
-  useEffect(() => {
-    const onUpdate = () => {
-      loadNodes();
-    };
-    window.addEventListener("aicw-node-registered", onUpdate);
-    return () => window.removeEventListener("aicw-node-registered", onUpdate);
-  }, [loadNodes]);
-
+export function NodesHero({ data, loadState }: NodesHeroProps) {
   const stats = data?.stats ?? { total: 0, activeRegistered: 0 };
   const nodes = data?.nodes ?? [];
-  const showGlobe = state === "ready" || state === "loading";
+  const showGlobe = loadState === "ready" || loadState === "loading";
 
   return (
     <section className="relative h-[min(78vh,720px)] min-h-[440px] w-full select-none overflow-hidden border-b border-surface-border bg-[var(--color-hero-bg)] sm:min-h-[500px] sm:h-[min(84vh,780px)] lg:min-h-[520px] lg:h-[min(88vh,820px)]">
@@ -52,8 +25,8 @@ export function NodesHero() {
           <GlobeWorldMap nodes={nodes} className="h-full w-full" />
         ) : (
           <div className="flex h-full items-center justify-center bg-[var(--color-globe-bg)] text-sm text-content-muted">
-            {state === "unconfigured" && "Database not configured"}
-            {state === "error" && "Failed to load map"}
+            {loadState === "unconfigured" && "Database not configured"}
+            {loadState === "error" && "Failed to load map"}
           </div>
         )}
       </div>

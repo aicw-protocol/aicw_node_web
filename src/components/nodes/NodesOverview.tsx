@@ -1,16 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { truncateAddress } from "@/lib/formatWallet";
 import type { NodeListResponse, NodeRecord } from "@/lib/db/types";
+import type { NodesLoadState } from "@/components/nodes/types";
 import {
   getNodeConnectivityStatus,
   type NodeConnectivityStatus,
 } from "@/lib/nodePing";
 import { CopyIconButton } from "@/components/CopyIconButton";
-
-type LoadState = "loading" | "ready" | "error" | "unconfigured";
 
 function formatDate(iso: string): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -49,46 +47,21 @@ function StatusDot({
   );
 }
 
-export function NodesOverview({ hideStats = false }: { hideStats?: boolean }) {
-  const [loadState, setLoadState] = useState<LoadState>("loading");
-  const [data, setData] = useState<NodeListResponse | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+interface NodesOverviewProps {
+  data: NodeListResponse | null;
+  loadState: NodesLoadState;
+  errorMessage: string | null;
+  onReload: () => Promise<void>;
+  hideStats?: boolean;
+}
 
-  const loadNodes = useCallback(async () => {
-    setLoadState("loading");
-    setErrorMessage(null);
-
-    try {
-      const res = await fetch("/api/nodes", { cache: "no-store" });
-      if (res.status === 503) {
-        setLoadState("unconfigured");
-        setData(null);
-        return;
-      }
-      if (!res.ok) {
-        throw new Error("Failed to load nodes");
-      }
-      const json = (await res.json()) as NodeListResponse;
-      setData(json);
-      setLoadState("ready");
-    } catch {
-      setLoadState("error");
-      setErrorMessage("Could not load nodes from the database.");
-    }
-  }, []);
-
-  useEffect(() => {
-    loadNodes();
-  }, [loadNodes]);
-
-  useEffect(() => {
-    const onRegistered = () => {
-      loadNodes();
-    };
-    window.addEventListener("aicw-node-registered", onRegistered);
-    return () => window.removeEventListener("aicw-node-registered", onRegistered);
-  }, [loadNodes]);
-
+export function NodesOverview({
+  data,
+  loadState,
+  errorMessage,
+  onReload,
+  hideStats = false,
+}: NodesOverviewProps) {
   if (loadState === "loading") {
     return (
       <div className="rounded-xl border border-surface-border bg-surface-panel p-8 text-center text-sm text-content-secondary">
@@ -122,7 +95,7 @@ export function NodesOverview({ hideStats = false }: { hideStats?: boolean }) {
         <button
           type="button"
           onClick={() => {
-            loadNodes().catch(() => toast.error("Retry failed"));
+            onReload().catch(() => toast.error("Retry failed"));
           }}
           className="mt-4 rounded-lg border border-red-400/40 px-3 py-2 text-red-100 hover:bg-red-500/10"
         >

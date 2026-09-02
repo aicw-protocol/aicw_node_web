@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { fetchLatestRelease } from "@/lib/releases/fetchLatestRelease";
 import { isVersionNewer, normalizeVersion } from "@/lib/releases/version";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
+
+const SHARED_CACHE_CONTROL =
+  "public, s-maxage=300, stale-while-revalidate=600";
 
 /** GET /api/releases/latest — latest GitHub GUI release for web + desktop. */
 export async function GET(request: Request) {
@@ -17,9 +20,12 @@ export async function GET(request: Request) {
   const updateAvailable =
     currentVersion !== null && isVersionNewer(latest.latestVersion, currentVersion);
 
-  return NextResponse.json({
-    ...latest,
-    currentVersion,
-    updateAvailable,
-  });
+  return NextResponse.json(
+    {
+      ...latest,
+      currentVersion,
+      updateAvailable,
+    },
+    { headers: { "Cache-Control": SHARED_CACHE_CONTROL } },
+  );
 }

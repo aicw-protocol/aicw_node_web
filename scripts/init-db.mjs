@@ -75,6 +75,8 @@ CREATE TABLE IF NOT EXISTS nodes (
   last_ping_at TIMESTAMP NULL,
   latitude DECIMAL(9, 6) NULL,
   longitude DECIMAL(9, 6) NULL,
+  node_name VARCHAR(64) NULL,
+  public_key VARCHAR(128) NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uq_nodes_node_id (node_id),
   KEY idx_nodes_owner_wallet (owner_wallet),
@@ -91,11 +93,93 @@ CREATE TABLE IF NOT EXISTS staking (
   status ENUM('active', 'unstake_requested', 'returned') NOT NULL DEFAULT 'active',
   tx_signature VARCHAR(128) NULL,
   contract_stake_ref VARCHAR(128) NULL,
+  unstake_requested_at TIMESTAMP NULL,
+  return_available_at TIMESTAMP NULL,
+  returned_at TIMESTAMP NULL,
+  return_tx_signature VARCHAR(128) NULL,
+  last_initiated_node_id VARCHAR(128) NULL,
+  last_initiated_node_name VARCHAR(64) NULL,
   PRIMARY KEY (id),
   KEY idx_staking_wallet (wallet),
   KEY idx_staking_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 `;
+
+const UNSTAKE_EVENTS_TABLE = `
+CREATE TABLE IF NOT EXISTS unstake_events (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  staking_id BIGINT UNSIGNED NULL,
+  wallet VARCHAR(64) NOT NULL,
+  node_id VARCHAR(128) NULL,
+  node_name VARCHAR(64) NULL,
+  event_type ENUM(
+    'node_offboard_started',
+    'node_stopped',
+    'node_deregistered',
+    'unstake_requested',
+    'return_scheduled',
+    'return_sent',
+    'return_failed',
+    'local_identity_removed'
+  ) NOT NULL,
+  detail TEXT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_unstake_events_staking (staking_id),
+  KEY idx_unstake_events_wallet (wallet),
+  KEY idx_unstake_events_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+`;
+
+function hasErrorCode(error, codes) {
+  return (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    codes.includes(error.code)
+  );
+}
+
+async function addColumnIfMissing(pool, sql) {
+  try {
+    await pool.query(sql);
+  } catch (error) {
+    if (hasErrorCode(error, ["ER_DUP_FIELDNAME"])) return;
+    throw error;
+  }
+}
+
+async function migrateExistingSchema(pool) {
+  try {
+    await pool.query(
+      "ALTER TABLE nodes CHANGE COLUMN last_heartbeat_at last_ping_at TIMESTAMP NULL COMMENT 'Last time this node pinged in as alive'",
+    );
+  } catch (error) {
+    if (!hasErrorCode(error, ["ER_BAD_FIELD_ERROR", "ER_DUP_FIELDNAME"])) {
+      throw error;
+    }
+  }
+
+  const nodeColumns = [
+    "ALTER TABLE nodes ADD COLUMN last_ping_at TIMESTAMP NULL COMMENT 'Last time this node pinged in as alive'",
+    "ALTER TABLE nodes ADD COLUMN latitude DECIMAL(9, 6) NULL COMMENT 'Operator location for map display'",
+    "ALTER TABLE nodes ADD COLUMN longitude DECIMAL(9, 6) NULL COMMENT 'Operator location for map display'",
+    "ALTER TABLE nodes ADD COLUMN node_name VARCHAR(64) NULL COMMENT 'Operator-chosen node name from identity'",
+    "ALTER TABLE nodes ADD COLUMN public_key VARCHAR(128) NULL COMMENT 'Ed25519 public key hex (never store private key)'",
+  ];
+  const stakingColumns = [
+    "ALTER TABLE staking ADD COLUMN unstake_requested_at TIMESTAMP NULL COMMENT 'When unstake was approved'",
+    "ALTER TABLE staking ADD COLUMN return_available_at TIMESTAMP NULL COMMENT 'Earliest time SOL may be returned'",
+    "ALTER TABLE staking ADD COLUMN returned_at TIMESTAMP NULL COMMENT 'When SOL was returned to operator wallet'",
+    "ALTER TABLE staking ADD COLUMN return_tx_signature VARCHAR(128) NULL COMMENT 'Solana tx sending stake back to operator'",
+    "ALTER TABLE staking ADD COLUMN last_initiated_node_id VARCHAR(128) NULL COMMENT 'Last node that triggered unstake'",
+    "ALTER TABLE staking ADD COLUMN last_initiated_node_name VARCHAR(64) NULL COMMENT 'Last node name that triggered unstake'",
+  ];
+
+  for (const sql of [...nodeColumns, ...stakingColumns]) {
+    await addColumnIfMissing(pool, sql);
+  }
+}
 
 async function main() {
   loadEnvLocal();
@@ -117,6 +201,10 @@ async function main() {
     console.log("✓ nodes table ready");
     await pool.query(STAKING_TABLE);
     console.log("✓ staking table ready");
+    await migrateExistingSchema(pool);
+    console.log("✓ existing columns migrated");
+    await pool.query(UNSTAKE_EVENTS_TABLE);
+    console.log("✓ unstake_events table ready");
   } finally {
     await pool.end();
   }
