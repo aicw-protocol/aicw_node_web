@@ -152,27 +152,25 @@ export function NodeRewardsOverview() {
           <table className="min-w-full text-left text-sm">
             <thead>
               <tr className="border-b border-surface-border text-content-muted">
-                <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide">Node</th>
-                <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide">
-                  Operator
+                <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide">Node ID</th>
+                <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide">Owner</th>
+                <th className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide">
+                  Wallets
                 </th>
                 <th className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide">
-                  Issuances
+                  Claimable SOL
                 </th>
                 <th className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide">
-                  Avail. SOL
+                  Total SOL
                 </th>
                 <th className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide">
-                  Accrued SOL
+                  Claimable TAICW
                 </th>
                 <th className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide">
-                  Avail. TAICW
-                </th>
-                <th className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide">
-                  Accrued TAICW
+                  Total TAICW
                 </th>
                 <th className="hidden px-4 py-2.5 text-xs font-medium uppercase tracking-wide sm:table-cell">
-                  Registered
+                  Joined
                 </th>
               </tr>
             </thead>
