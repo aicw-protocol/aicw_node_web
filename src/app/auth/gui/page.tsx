@@ -13,7 +13,9 @@ type GuiAuthPurpose =
   | "register"
   | "offboard"
   | "unstake"
-  | "delete_node";
+  | "delete_node"
+  | "withdraw_sol"
+  | "withdraw_token";
 
 function parseGuiAuthPurpose(value: string): GuiAuthPurpose {
   switch (value) {
@@ -21,6 +23,8 @@ function parseGuiAuthPurpose(value: string): GuiAuthPurpose {
     case "offboard":
     case "unstake":
     case "delete_node":
+    case "withdraw_sol":
+    case "withdraw_token":
       return value;
     default:
       return "login";
@@ -189,6 +193,10 @@ function GuiAuthContent() {
         return "AICW Request Stake Return";
       case "delete_node":
         return "AICW Remove Node";
+      case "withdraw_sol":
+        return "AICW Withdraw SOL Rewards";
+      case "withdraw_token":
+        return "AICW Withdraw TAICW Rewards";
       default:
         return "AICW Node Desktop Sign-In";
     }
@@ -204,6 +212,10 @@ function GuiAuthContent() {
         return "Sign with your Solana wallet to request return of staked SOL.";
       case "delete_node":
         return "Sign with your Solana wallet to remove this node from the network.";
+      case "withdraw_sol":
+        return "Sign with your Solana wallet to withdraw accrued SOL committee rewards to your wallet.";
+      case "withdraw_token":
+        return "Sign with your Solana wallet to withdraw accrued TAICW rewards to your wallet.";
       default:
         return "Sign in with your Solana wallet to link the desktop app with your staking and node registration on AICW Node Web.";
     }
@@ -219,6 +231,10 @@ function GuiAuthContent() {
         return "Preparing secure stake-return challenge…";
       case "delete_node":
         return "Preparing secure remove-node challenge…";
+      case "withdraw_sol":
+        return "Preparing secure SOL withdraw challenge…";
+      case "withdraw_token":
+        return "Preparing secure TAICW withdraw challenge…";
       default:
         return "Preparing secure login challenge…";
     }
@@ -234,6 +250,10 @@ function GuiAuthContent() {
         return "Approve the stake-return request in your wallet…";
       case "delete_node":
         return "Approve the remove-node request in your wallet…";
+      case "withdraw_sol":
+        return "Approve the SOL withdraw request in your wallet…";
+      case "withdraw_token":
+        return "Approve the TAICW withdraw request in your wallet…";
       default:
         return "Approve the sign-in request in your wallet…";
     }
@@ -249,6 +269,10 @@ function GuiAuthContent() {
         return "Sign to Request Stake Return";
       case "delete_node":
         return "Sign to Remove Node";
+      case "withdraw_sol":
+        return "Sign to Withdraw SOL";
+      case "withdraw_token":
+        return "Sign to Withdraw TAICW";
       default:
         return "Sign in for Desktop App";
     }

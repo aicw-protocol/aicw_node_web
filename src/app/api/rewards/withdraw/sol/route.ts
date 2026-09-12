@@ -6,6 +6,7 @@ import {
   previewSolWithdrawal,
 } from "@/lib/db/rewards";
 import { rewardCorsHeaders } from "@/lib/rewardCors";
+import { verifyWithdrawAuth } from "@/lib/rewardWithdrawAuth";
 import { sendStakeReturn } from "@/lib/returnStake";
 
 export async function OPTIONS() {
@@ -15,6 +16,10 @@ export async function OPTIONS() {
 interface Body {
   ownerWallet: string;
   nodeId?: string;
+  challengeToken?: string;
+  signatureBase64?: string;
+  signedMessageBase64?: string;
+  message?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -53,6 +58,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    await verifyWithdrawAuth("withdraw_sol", {
+      ownerWallet,
+      challengeToken: body.challengeToken,
+      signatureBase64: body.signatureBase64,
+      signedMessageBase64: body.signedMessageBase64,
+      message: body.message,
+    });
+
     const preview = await previewSolWithdrawal({
       ownerWallet,
       nodeId: body.nodeId?.trim(),

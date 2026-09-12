@@ -28,9 +28,17 @@ interface DashboardResponse {
   eligibility: RegistrationEligibility;
   activeStake: StakingRecord | null;
   totals: {
+    committeeWalletOpens: number;
     referralWalletOpens: number;
     rewardSol: number;
     rewardToken: number;
+    availableSol: number;
+    availableToken: number;
+  };
+  rewardConfig?: {
+    solWithdrawMin: number;
+    tokenSymbol: string;
+    tokenMint: string | null;
   };
 }
 
@@ -80,6 +88,7 @@ export function DashboardOverview() {
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [nodeToDelete, setNodeToDelete] = useState<NodeRecord | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [withdrawing, setWithdrawing] = useState<"sol" | "token" | null>(null);
 
   const loadDashboard = useCallback(async () => {
     if (!connected || !publicKey) {
@@ -124,6 +133,65 @@ export function DashboardOverview() {
       window.removeEventListener("aicw-staking-updated", onUpdate);
     };
   }, [loadDashboard]);
+
+  const handleWithdraw = async (asset: "sol" | "token") => {
+    if (!publicKey) return;
+    if (!walletCanSignMessages(activeWallet?.adapter, signMessage)) {
+      toast.error("This wallet does not support message signing.");
+      return;
+    }
+
+    setWithdrawing(asset);
+    try {
+      const signed = await signGuiWalletAction({
+        adapter: activeWallet?.adapter,
+        publicKey,
+        signMessage,
+        wallet: publicKey.toBase58(),
+        purpose: asset === "sol" ? "withdraw_sol" : "withdraw_token",
+      });
+
+      const endpoint =
+        asset === "sol" ? "/api/rewards/withdraw/sol" : "/api/rewards/withdraw/token";
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ownerWallet: signed.wallet,
+          challengeToken: signed.challengeToken,
+          signatureBase64: signed.signatureBase64,
+          signedMessageBase64: signed.signedMessageBase64,
+          message: signed.message,
+        }),
+      });
+
+      const json = (await res.json()) as {
+        success?: boolean;
+        error?: string;
+        amountSol?: number;
+        amountToken?: number;
+        txSignature?: string;
+      };
+
+      if (!res.ok || !json.success) {
+        toast.error(json.error ?? "Withdraw failed");
+        return;
+      }
+
+      const tokenLabel = data?.rewardConfig?.tokenSymbol ?? "TAICW";
+      toast.success(
+        asset === "sol"
+          ? `Sent ${formatStakeSol(json.amountSol ?? 0)} SOL`
+          : `Sent ${formatStakeSol(json.amountToken ?? 0)} ${tokenLabel}`,
+      );
+      await loadDashboard();
+    } catch {
+      toast.error("Withdraw request failed");
+    } finally {
+      setWithdrawing(null);
+    }
+  };
 
   const handleDeleteConfirm = async () => {
     if (!nodeToDelete || !publicKey) return;
@@ -232,6 +300,12 @@ export function DashboardOverview() {
   }
 
   const walletLabel = truncateAddress(publicKey.toBase58());
+  const tokenLabel = data.rewardConfig?.tokenSymbol ?? "TAICW";
+  const solWithdrawMin = data.rewardConfig?.solWithdrawMin ?? 0.01;
+  const canWithdrawSol =
+    withdrawing === null && data.totals.availableSol >= solWithdrawMin;
+  const canWithdrawToken =
+    withdrawing === null && data.totals.availableToken > 0;
 
   return (
     <div className="space-y-8">
@@ -247,25 +321,51 @@ export function DashboardOverview() {
           </div>
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-lg border border-surface-border bg-surface/60 p-4">
-            <p className="text-xs text-content-muted">SOL fee rewards</p>
+            <p className="text-xs text-content-muted">SOL accrued</p>
             <p className="mt-1 text-xl font-semibold text-content-primary">
               {formatStakeSol(data.totals.rewardSol)} SOL
             </p>
             <p className="mt-1 text-xs text-content-muted">
-              From wallet opens via referral
+              Available: {formatStakeSol(data.totals.availableSol)} SOL
             </p>
           </div>
           <div className="rounded-lg border border-surface-border bg-surface/60 p-4">
-            <p className="text-xs text-content-muted">Referral wallet opens</p>
+            <p className="text-xs text-content-muted">{tokenLabel} accrued</p>
             <p className="mt-1 text-xl font-semibold text-content-primary">
-              {data.totals.referralWalletOpens}
+              {formatStakeSol(data.totals.rewardToken)}
+            </p>
+            <p className="mt-1 text-xs text-content-muted">
+              Available: {formatStakeSol(data.totals.availableToken)}
             </p>
           </div>
           <div className="rounded-lg border border-surface-border bg-surface/60 p-4">
-            <p className="text-xs text-content-muted">Token rewards (SPL)</p>
-            <p className="mt-1 text-xl font-semibold text-content-secondary">Coming soon</p>
+            <p className="text-xs text-content-muted">Committee wallet issuances</p>
+            <p className="mt-1 text-xl font-semibold text-content-primary">
+              {data.totals.committeeWalletOpens ?? data.totals.referralWalletOpens}
+            </p>
+          </div>
+          <div className="rounded-lg border border-surface-border bg-surface/60 p-4 flex flex-col justify-center gap-2">
+            <button
+              type="button"
+              disabled={!canWithdrawSol}
+              onClick={() => void handleWithdraw("sol")}
+              className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-40"
+            >
+              {withdrawing === "sol" ? "Withdrawing SOL…" : "Withdraw SOL"}
+            </button>
+            <button
+              type="button"
+              disabled={!canWithdrawToken}
+              onClick={() => void handleWithdraw("token")}
+              className="rounded-lg border border-surface-border px-3 py-2 text-sm text-content-primary disabled:opacity-40"
+            >
+              {withdrawing === "token" ? `Withdrawing ${tokenLabel}…` : `Withdraw ${tokenLabel}`}
+            </button>
+            {!canWithdrawSol && data.totals.availableSol > 0 ? (
+              <p className="text-xs text-content-muted">SOL min: {formatStakeSol(solWithdrawMin)}</p>
+            ) : null}
           </div>
         </div>
       </section>
@@ -312,19 +412,22 @@ export function DashboardOverview() {
                     <p className="text-xs text-content-muted">Ping status</p>
                     <p className="mt-1 text-sm text-content-secondary">
                       {isNodePingActive(node.lastPingAt)
-                        ? "Receiving pings — eligible for referrals"
+                        ? "Receiving pings — eligible for MPC committee"
                         : "Waiting for node to start and ping"}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-content-muted">SOL rewards</p>
+                    <p className="text-xs text-content-muted">Committee issuances</p>
                     <p className="mt-1 text-sm text-content-primary">
-                      {formatStakeSol(node.rewardSol)} SOL
+                      {node.committeeWalletOpens ?? node.referralWalletOpens}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-content-muted">Token rewards</p>
-                    <p className="mt-1 text-sm text-content-secondary">Coming soon</p>
+                    <p className="text-xs text-content-muted">SOL / {tokenLabel}</p>
+                    <p className="mt-1 text-sm text-content-primary">
+                      {formatStakeSol(node.availableSol ?? node.rewardSol)} /{" "}
+                      {formatStakeSol(node.availableToken ?? node.rewardToken)}
+                    </p>
                   </div>
                 </div>
               </article>

@@ -13,7 +13,9 @@ export type GuiAuthPurpose =
   | "register"
   | "offboard"
   | "unstake"
-  | "delete_node";
+  | "delete_node"
+  | "withdraw_sol"
+  | "withdraw_token";
 
 const NODE_SCOPED_PURPOSES: GuiAuthPurpose[] = [
   "register",
@@ -120,6 +122,12 @@ function buildChallengeMessage(
       break;
     case "unstake":
       lines = ["AICW Node Unstake", `Wallet: ${wallet}`];
+      break;
+    case "withdraw_sol":
+      lines = ["AICW Withdraw SOL Rewards", `Wallet: ${wallet}`];
+      break;
+    case "withdraw_token":
+      lines = ["AICW Withdraw TAICW Rewards", `Wallet: ${wallet}`];
       break;
     default:
       lines = ["AICW Node GUI Login", `Wallet: ${wallet}`];

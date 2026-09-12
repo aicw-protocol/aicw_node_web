@@ -100,6 +100,16 @@ export async function recordWalletIssuance(input: {
     throw new Error("No committee nodes for wallet issuance");
   }
 
+  const [existing] = await pool.query<RowDataPacket[]>(
+    `SELECT id FROM reward_events
+     WHERE wallet_id = :walletId AND event_type = 'wallet_issued'
+     LIMIT 1`,
+    { walletId: input.walletId },
+  );
+  if (existing.length > 0) {
+    return { committeeNodeIds, perNodeSol: WALLET_ISSUANCE_FEE_SOL / committeeNodeIds.length };
+  }
+
   const perNodeSol = WALLET_ISSUANCE_FEE_SOL / committeeNodeIds.length;
 
   for (const nodeId of committeeNodeIds) {
@@ -169,6 +179,20 @@ export async function recordMpcEvent(input: {
 
   await ensureReady();
   const pool = await getPool();
+
+  if (input.txSignature) {
+    const [dup] = await pool.query<RowDataPacket[]>(
+      `SELECT id FROM reward_events
+       WHERE node_id = :nodeId AND event_type = :eventType AND tx_signature = :txSignature
+       LIMIT 1`,
+      {
+        nodeId: input.nodeId,
+        eventType: input.eventType,
+        txSignature: input.txSignature,
+      },
+    );
+    if (dup.length > 0) return true;
+  }
 
   const [result] = await pool.execute<ResultSetHeader>(
     `UPDATE nodes

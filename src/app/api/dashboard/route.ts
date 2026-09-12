@@ -4,6 +4,11 @@ import { isDatabaseConfigured } from "@/lib/db/config";
 import { listNodesByOwner } from "@/lib/db/nodes";
 import { getActiveStakeByWallet } from "@/lib/db/staking";
 import { getRegistrationEligibility } from "@/lib/nodeEligibility";
+import {
+  SOL_WITHDRAW_MIN,
+  getRewardTokenMint,
+  getRewardTokenSymbol,
+} from "@/lib/rewardConfig";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +46,24 @@ export async function GET(request: Request) {
     const { getNodeBalancesByOwner } = await import("@/lib/db/rewards");
     const balances = await getNodeBalancesByOwner(wallet);
 
+    const balanceByNodeId = new Map(balances.map((b) => [b.nodeId, b]));
+
+    const nodesWithBalances = nodes.map((node) => {
+      const balance = balanceByNodeId.get(node.nodeId);
+      if (!balance) return node;
+      return {
+        ...node,
+        committeeWalletOpens: balance.committeeWalletOpens,
+        referralWalletOpens: balance.committeeWalletOpens,
+        rewardSol: balance.accruedSol,
+        rewardToken: balance.accruedToken,
+        availableSol: balance.availableSol,
+        availableToken: balance.availableToken,
+        withdrawnSol: balance.withdrawnSol,
+        withdrawnToken: balance.withdrawnToken,
+      };
+    });
+
     const totals = balances.reduce(
       (acc, node) => ({
         committeeWalletOpens:
@@ -62,12 +85,19 @@ export async function GET(request: Request) {
       },
     );
 
+    totals.referralWalletOpens = totals.committeeWalletOpens;
+
     return NextResponse.json({
-      nodes,
+      nodes: nodesWithBalances,
       eligibility,
       activeStake,
       totals,
       balances,
+      rewardConfig: {
+        solWithdrawMin: SOL_WITHDRAW_MIN,
+        tokenSymbol: getRewardTokenSymbol(),
+        tokenMint: getRewardTokenMint(),
+      },
     });
   } catch (error) {
     console.error("GET /api/dashboard failed:", error);

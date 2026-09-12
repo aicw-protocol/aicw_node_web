@@ -97,7 +97,12 @@ export function walletCanSignMessages(
   );
 }
 
-export type WalletActionPurpose = "offboard" | "unstake" | "delete_node";
+export type WalletActionPurpose =
+  | "offboard"
+  | "unstake"
+  | "delete_node"
+  | "withdraw_sol"
+  | "withdraw_token";
 
 export async function fetchWalletActionChallenge(input: {
   wallet: string;

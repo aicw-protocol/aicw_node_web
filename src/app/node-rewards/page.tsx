@@ -6,7 +6,7 @@ export default function NodeRewardsPage() {
     <AppLayout>
       <PageShell
         title="Node Rewards"
-        description="SOL rewards earned by nodes for wallet issuances referred through them — recorded from actual on-chain transactions."
+        description="SOL and TAICW rewards earned by MPC committee nodes for wallet issuances, signing, and will operations."
       >
         <NodeRewardsOverview />
       </PageShell>

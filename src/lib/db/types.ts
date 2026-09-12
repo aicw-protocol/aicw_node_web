@@ -27,8 +27,13 @@ export interface NodeRecord {
   createdAt: string;
   status: NodeStatus;
   referralWalletOpens: number;
+  committeeWalletOpens: number;
   rewardSol: number;
   rewardToken: number;
+  availableSol: number;
+  availableToken: number;
+  withdrawnSol: number;
+  withdrawnToken: number;
   latitude: number | null;
   longitude: number | null;
   lastPingAt: string | null;

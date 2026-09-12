@@ -1,6 +1,7 @@
 import type { RowDataPacket, ResultSetHeader } from "mysql2";
 import { PublicKey } from "@solana/web3.js";
 import { getPool } from "./pool";
+import { ensureRewardSchema } from "./rewardSchema";
 import type { NodeListResponse, NodeRecord, NodeStatus } from "./types";
 
 interface NodeRow extends RowDataPacket {
@@ -12,8 +13,11 @@ interface NodeRow extends RowDataPacket {
   created_at: Date;
   status: NodeStatus;
   referral_wallet_opens: number;
+  committee_wallet_opens: number;
   reward_sol: string;
   reward_token: string;
+  withdrawn_sol: string;
+  withdrawn_token: string;
   latitude: number | null;
   longitude: number | null;
   last_ping_at: Date | null;
@@ -21,9 +25,17 @@ interface NodeRow extends RowDataPacket {
 
 const NODE_SELECT =
   `id, owner_wallet, node_id, node_name, public_key, created_at, status,
-   referral_wallet_opens, reward_sol, reward_token, latitude, longitude, last_ping_at`;
+   referral_wallet_opens, committee_wallet_opens, reward_sol, reward_token,
+   withdrawn_sol, withdrawn_token, latitude, longitude, last_ping_at`;
 
 function mapNode(row: NodeRow): NodeRecord {
+  const accruedSol = Number(row.reward_sol);
+  const withdrawnSol = Number(row.withdrawn_sol ?? 0);
+  const accruedToken = Number(row.reward_token);
+  const withdrawnToken = Number(row.withdrawn_token ?? 0);
+  const committeeWalletOpens =
+    row.committee_wallet_opens ?? row.referral_wallet_opens ?? 0;
+
   return {
     id: row.id,
     ownerWallet: row.owner_wallet,
@@ -32,9 +44,14 @@ function mapNode(row: NodeRow): NodeRecord {
     publicKey: row.public_key,
     createdAt: row.created_at.toISOString(),
     status: row.status,
-    referralWalletOpens: row.referral_wallet_opens,
-    rewardSol: Number(row.reward_sol),
-    rewardToken: Number(row.reward_token),
+    referralWalletOpens: committeeWalletOpens,
+    committeeWalletOpens,
+    rewardSol: accruedSol,
+    rewardToken: accruedToken,
+    availableSol: Math.max(0, accruedSol - withdrawnSol),
+    availableToken: Math.max(0, accruedToken - withdrawnToken),
+    withdrawnSol,
+    withdrawnToken,
     latitude: row.latitude === null ? null : Number(row.latitude),
     longitude: row.longitude === null ? null : Number(row.longitude),
     lastPingAt: row.last_ping_at ? row.last_ping_at.toISOString() : null,
@@ -139,6 +156,7 @@ export async function findNodeById(nodeId: string): Promise<NodeRecord | null> {
 
 export async function listNodesByOwner(ownerWallet: string): Promise<NodeRecord[]> {
   const pool = await getPool();
+  await ensureRewardSchema(pool);
   const [rows] = await pool.query<NodeRow[]>(
     `SELECT ${NODE_SELECT} FROM nodes
      WHERE owner_wallet = :ownerWallet
