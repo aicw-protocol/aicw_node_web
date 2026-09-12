@@ -233,9 +233,40 @@ export async function getNodeBalancesByOwner(
   return rows.map(mapBalance);
 }
 
+/** Distinct AICW wallets issued network-wide (not committee participation count). */
+export async function countNetworkWalletIssuances(): Promise<number> {
+  await ensureReady();
+  const pool = await getPool();
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT COUNT(DISTINCT wallet_id) AS total
+     FROM reward_events
+     WHERE event_type = 'wallet_issued' AND wallet_id IS NOT NULL`,
+  );
+  return Number(rows[0]?.total ?? 0);
+}
+
+/** Distinct wallets issued where at least one of the owner's nodes was in the MPC committee. */
+export async function countWalletIssuancesByOwner(
+  ownerWallet: string,
+): Promise<number> {
+  await ensureReady();
+  const pool = await getPool();
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT COUNT(DISTINCT re.wallet_id) AS total
+     FROM reward_events re
+     INNER JOIN nodes n ON n.node_id = re.node_id
+     WHERE re.event_type = 'wallet_issued'
+       AND re.wallet_id IS NOT NULL
+       AND n.owner_wallet = :owner
+       AND n.status = 'registered'`,
+    { owner: ownerWallet.trim() },
+  );
+  return Number(rows[0]?.total ?? 0);
+}
+
 export async function getNetworkRewardSummary(): Promise<{
   registeredNodes: number;
-  committeeWalletOpens: number;
+  walletIssuanceCount: number;
   totalAccruedSol: number;
   totalAccruedToken: number;
   totalAvailableSol: number;
@@ -244,27 +275,31 @@ export async function getNetworkRewardSummary(): Promise<{
   await ensureReady();
   const pool = await getPool();
 
-  const [countRows] = await pool.query<RowDataPacket[]>(
-    `SELECT COUNT(*) AS total FROM nodes WHERE status = 'registered'`,
-  );
+  const [countRows, walletRows, nodeRows] = await Promise.all([
+    pool.query<RowDataPacket[]>(
+      `SELECT COUNT(*) AS total FROM nodes WHERE status = 'registered'`,
+    ),
+    pool.query<RowDataPacket[]>(
+      `SELECT COUNT(DISTINCT wallet_id) AS total
+       FROM reward_events
+       WHERE event_type = 'wallet_issued' AND wallet_id IS NOT NULL`,
+    ),
+    pool.query<NodeRewardRow[]>(
+      `SELECT node_id, owner_wallet, committee_wallet_opens,
+              reward_sol, reward_token, withdrawn_sol, withdrawn_token
+       FROM nodes WHERE status = 'registered'`,
+    ),
+  ]);
 
-  const [rows] = await pool.query<NodeRewardRow[]>(
-    `SELECT node_id, owner_wallet, committee_wallet_opens,
-            reward_sol, reward_token, withdrawn_sol, withdrawn_token
-     FROM nodes WHERE status = 'registered'`,
-  );
-
-  const balances = rows.map(mapBalance);
+  const balances = nodeRows[0].map(mapBalance);
   const totals = balances.reduce(
     (acc, b) => ({
-      committeeWalletOpens: acc.committeeWalletOpens + b.committeeWalletOpens,
       totalAccruedSol: acc.totalAccruedSol + b.accruedSol,
       totalAccruedToken: acc.totalAccruedToken + b.accruedToken,
       totalAvailableSol: acc.totalAvailableSol + b.availableSol,
       totalAvailableToken: acc.totalAvailableToken + b.availableToken,
     }),
     {
-      committeeWalletOpens: 0,
       totalAccruedSol: 0,
       totalAccruedToken: 0,
       totalAvailableSol: 0,
@@ -273,7 +308,8 @@ export async function getNetworkRewardSummary(): Promise<{
   );
 
   return {
-    registeredNodes: Number(countRows[0]?.total ?? 0),
+    registeredNodes: Number(countRows[0][0]?.total ?? 0),
+    walletIssuanceCount: Number(walletRows[0][0]?.total ?? 0),
     ...totals,
   };
 }

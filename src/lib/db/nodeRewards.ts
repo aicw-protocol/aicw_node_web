@@ -97,7 +97,7 @@ export async function listNodeRewards(): Promise<NodeRewardsResponse> {
     summary: {
       registeredNodes: network.registeredNodes,
       nodesWithActivity,
-      totalWalletOpens: network.committeeWalletOpens,
+      totalWalletOpens: network.walletIssuanceCount,
       totalRewardSol: network.totalAccruedSol,
       totalAvailableSol: network.totalAvailableSol,
       totalRewardToken: network.totalAccruedToken,

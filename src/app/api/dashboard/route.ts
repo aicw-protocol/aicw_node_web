@@ -43,8 +43,12 @@ export async function GET(request: Request) {
       getActiveStakeByWallet(wallet),
     ]);
 
-    const { getNodeBalancesByOwner } = await import("@/lib/db/rewards");
-    const balances = await getNodeBalancesByOwner(wallet);
+    const { countWalletIssuancesByOwner, getNodeBalancesByOwner } =
+      await import("@/lib/db/rewards");
+    const [balances, walletIssuanceCount] = await Promise.all([
+      getNodeBalancesByOwner(wallet),
+      countWalletIssuancesByOwner(wallet),
+    ]);
 
     const balanceByNodeId = new Map(balances.map((b) => [b.nodeId, b]));
 
@@ -66,18 +70,12 @@ export async function GET(request: Request) {
 
     const totals = balances.reduce(
       (acc, node) => ({
-        committeeWalletOpens:
-          acc.committeeWalletOpens + node.committeeWalletOpens,
-        referralWalletOpens:
-          acc.referralWalletOpens + node.committeeWalletOpens,
         rewardSol: acc.rewardSol + node.accruedSol,
         availableSol: acc.availableSol + node.availableSol,
         rewardToken: acc.rewardToken + node.accruedToken,
         availableToken: acc.availableToken + node.availableToken,
       }),
       {
-        committeeWalletOpens: 0,
-        referralWalletOpens: 0,
         rewardSol: 0,
         availableSol: 0,
         rewardToken: 0,
@@ -85,13 +83,16 @@ export async function GET(request: Request) {
       },
     );
 
-    totals.referralWalletOpens = totals.committeeWalletOpens;
+    const walletIssuanceTotals = {
+      committeeWalletOpens: walletIssuanceCount,
+      referralWalletOpens: walletIssuanceCount,
+    };
 
     return NextResponse.json({
       nodes: nodesWithBalances,
       eligibility,
       activeStake,
-      totals,
+      totals: { ...totals, ...walletIssuanceTotals },
       balances,
       rewardConfig: {
         solWithdrawMin: SOL_WITHDRAW_MIN,

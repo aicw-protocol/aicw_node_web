@@ -117,7 +117,7 @@ export function NodeRewardsOverview() {
           <p className="mt-1 text-2xl font-semibold text-content-primary">{summary.nodesWithActivity}</p>
         </div>
         <div className="rounded-xl border border-surface-border bg-surface-panel p-4">
-          <p className="text-xs text-content-muted">Committee issuances</p>
+          <p className="text-xs text-content-muted">Wallet issuances</p>
           <p className="mt-1 text-2xl font-semibold text-content-primary">{summary.totalWalletOpens}</p>
         </div>
         <div className="rounded-xl border border-surface-border bg-surface-panel p-4">
