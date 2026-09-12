@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { truncateAddress } from "@/lib/formatWallet";
+import { CopyIconButton } from "@/components/CopyIconButton";
+import { truncateAddress, truncateNodeId } from "@/lib/formatWallet";
 import { formatStakeSol } from "@/lib/stakingCurve";
 
 interface NodeRewardEntry {
@@ -148,37 +149,64 @@ export function NodeRewardsOverview() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-surface-border bg-surface-panel">
-          <table className="min-w-full text-left text-sm">
+          <table className="w-full min-w-[960px] border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-surface-border text-xs uppercase tracking-wide text-content-muted">
+              <tr className="border-b border-surface-border bg-surface-elevated/40 text-xs uppercase tracking-wide text-content-muted">
                 <th className="px-4 py-3 font-medium">Node</th>
                 <th className="px-4 py-3 font-medium">Operator</th>
                 <th className="px-4 py-3 font-medium text-right">Issuances</th>
-                <th className="px-4 py-3 font-medium text-right">SOL</th>
-                <th className="px-4 py-3 font-medium text-right">TAICW</th>
-                <th className="px-4 py-3 font-medium hidden sm:table-cell">Registered</th>
+                <th className="px-4 py-3 font-medium text-right">Avail. SOL</th>
+                <th className="px-4 py-3 font-medium text-right">Accrued SOL</th>
+                <th className="px-4 py-3 font-medium text-right">Avail. TAICW</th>
+                <th className="px-4 py-3 font-medium text-right">Accrued TAICW</th>
+                <th className="hidden px-4 py-3 font-medium whitespace-nowrap sm:table-cell">
+                  Registered
+                </th>
               </tr>
             </thead>
             <tbody>
-              {earningNodes.map((node) => (
+              {earningNodes.map((node, index) => (
                 <tr
                   key={node.id}
-                  className="border-b border-surface-border/60 last:border-0"
+                  className={
+                    index === earningNodes.length - 1
+                      ? ""
+                      : "border-b border-surface-border/60"
+                  }
                 >
-                  <td className="px-4 py-3 font-mono text-content-primary">{node.nodeId}</td>
-                  <td className="px-4 py-3 font-mono text-content-secondary">
+                  <td className="px-4 py-3 align-middle">
+                    <div className="flex items-center gap-1">
+                      <span
+                        className="font-mono text-content-primary whitespace-nowrap"
+                        title={node.nodeId}
+                      >
+                        {truncateNodeId(node.nodeId)}
+                      </span>
+                      <CopyIconButton value={node.nodeId} label="Node ID" />
+                    </div>
+                  </td>
+                  <td
+                    className="px-4 py-3 align-middle font-mono text-content-secondary whitespace-nowrap"
+                    title={node.ownerWallet}
+                  >
                     {truncateAddress(node.ownerWallet, 6)}
                   </td>
-                  <td className="px-4 py-3 text-right text-content-secondary">
+                  <td className="px-4 py-3 align-middle text-right tabular-nums text-content-secondary">
                     {node.committeeWalletOpens}
                   </td>
-                  <td className="px-4 py-3 text-right text-content-primary">
-                    {formatStakeSol(node.availableSol)} / {formatStakeSol(node.rewardSol)}
+                  <td className="px-4 py-3 align-middle text-right tabular-nums text-content-primary">
+                    {formatStakeSol(node.availableSol)}
                   </td>
-                  <td className="px-4 py-3 text-right text-content-primary">
-                    {formatStakeSol(node.availableToken)} / {formatStakeSol(node.rewardToken)}
+                  <td className="px-4 py-3 align-middle text-right tabular-nums text-content-primary">
+                    {formatStakeSol(node.rewardSol)}
                   </td>
-                  <td className="px-4 py-3 text-content-muted hidden sm:table-cell">
+                  <td className="px-4 py-3 align-middle text-right tabular-nums text-content-primary">
+                    {formatStakeSol(node.availableToken)}
+                  </td>
+                  <td className="px-4 py-3 align-middle text-right tabular-nums text-content-primary">
+                    {formatStakeSol(node.rewardToken)}
+                  </td>
+                  <td className="hidden px-4 py-3 align-middle text-content-muted whitespace-nowrap sm:table-cell">
                     {formatDate(node.createdAt)}
                   </td>
                 </tr>
