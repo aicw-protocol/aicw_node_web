@@ -29,7 +29,9 @@ export function isGuiAuthPurpose(value: string): value is GuiAuthPurpose {
     value === "register" ||
     value === "offboard" ||
     value === "unstake" ||
-    value === "delete_node"
+    value === "delete_node" ||
+    value === "withdraw_sol" ||
+    value === "withdraw_token"
   );
 }
 
