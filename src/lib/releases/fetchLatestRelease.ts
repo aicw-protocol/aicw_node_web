@@ -1,4 +1,9 @@
 import { getOnboardingConfig } from "@/lib/onboardingConfig";
+import {
+  pickAllGuiDownloads,
+  type GuiOsKey,
+  type ReleaseDownload,
+} from "@/lib/releases/matchReleaseAsset";
 import { normalizeVersion } from "@/lib/releases/version";
 
 export interface LatestReleaseInfo {
@@ -6,6 +11,7 @@ export interface LatestReleaseInfo {
   latestVersion: string;
   releasesUrl: string;
   publishedAt: string | null;
+  downloads: Partial<Record<GuiOsKey, ReleaseDownload>>;
 }
 
 const DEFAULT_REPO = "aicw-protocol/aicw_node";
@@ -44,16 +50,28 @@ export async function fetchLatestRelease(): Promise<LatestReleaseInfo | null> {
       tag_name?: string;
       html_url?: string;
       published_at?: string;
+      assets?: Array<{ name?: string; browser_download_url?: string }>;
     };
 
     const tagName = data.tag_name?.trim();
     if (!tagName) return null;
+
+    const assets = (data.assets ?? [])
+      .filter(
+        (asset): asset is { name: string; browser_download_url: string } =>
+          Boolean(asset.name?.trim() && asset.browser_download_url?.trim()),
+      )
+      .map((asset) => ({
+        name: asset.name.trim(),
+        browser_download_url: asset.browser_download_url.trim(),
+      }));
 
     return {
       tagName,
       latestVersion: normalizeVersion(tagName),
       releasesUrl: data.html_url?.trim() || releasePageUrl(releasesUrl, tagName),
       publishedAt: data.published_at ?? null,
+      downloads: pickAllGuiDownloads(assets),
     };
   } catch {
     return null;

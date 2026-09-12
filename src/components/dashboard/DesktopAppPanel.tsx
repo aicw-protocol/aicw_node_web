@@ -1,16 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatStakeSol } from "@/lib/stakingCurve";
 import type { StakingRecord } from "@/lib/db/types";
-import {
-  GITHUB_RELEASES_URL,
-  RELEASE_GUI_ARTIFACTS,
-  detectOS,
-  getGUIBinaryName,
-  getOSLabel,
-} from "@/lib/detectOS";
+import { useLatestReleaseDownload } from "@/hooks/useLatestReleaseDownload";
 
 interface RegistrationEligibility {
   registeredNodeCount: number;
@@ -28,24 +21,12 @@ export function DesktopAppPanel({
   eligibility,
   activeStake = null,
 }: DesktopAppPanelProps) {
-  const [releasesUrl, setReleasesUrl] = useState<string>(GITHUB_RELEASES_URL);
-  const [guiName, setGuiName] = useState<string>(RELEASE_GUI_ARTIFACTS.linux);
-  const [osLabel, setOsLabel] = useState<string>("your OS");
-
-  useEffect(() => {
-    const os = detectOS();
-    setGuiName(getGUIBinaryName(os));
-    setOsLabel(getOSLabel(os));
-    fetch("/api/onboarding/config", { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json) => {
-        if (json?.releasesUrl) setReleasesUrl(String(json.releasesUrl));
-      })
-      .catch(() => {});
-  }, []);
+  const { osLabel, latestVersion, releasesUrl, download } = useLatestReleaseDownload();
 
   const required = eligibility.requiredStakeSol ?? 0;
   const canRegister = eligibility.canRegister ?? true;
+  const downloadHref = download?.url ?? releasesUrl;
+  const versionLabel = latestVersion ? ` (v${latestVersion})` : "";
 
   return (
     <section className="rounded-xl border border-surface-border bg-surface-panel p-6">
@@ -90,8 +71,18 @@ export function DesktopAppPanel({
 
       <ol className="mt-5 list-decimal space-y-2 pl-5 text-sm text-content-secondary">
         <li>
-          Download{" "}
-          <code className="text-content-primary">{guiName}</code> for {osLabel}.
+          Download the AICW Node desktop app for{" "}
+          <strong className="text-content-primary">{osLabel}</strong>
+          {versionLabel} from{" "}
+          <a
+            href={releasesUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-accent hover:underline"
+          >
+            GitHub Releases
+          </a>
+          .
         </li>
         <li>Sign in with the same wallet you use here.</li>
         <li>Click <strong className="text-content-primary">+ Register Node</strong> in the app.</li>
@@ -100,13 +91,14 @@ export function DesktopAppPanel({
 
       <div className="mt-5 flex flex-wrap gap-3">
         <a
-          href={releasesUrl}
+          href={downloadHref}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white transition hover:bg-accent-muted"
         >
           <i className="fa-solid fa-download mr-2" aria-hidden />
           Download for {osLabel}
+          {latestVersion ? ` (v${latestVersion})` : ""}
         </a>
         <Link
           href="/guide#quick-start"

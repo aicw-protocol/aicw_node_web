@@ -1,15 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  GITHUB_RELEASES_URL,
-  detectOS,
-  getGUIBinaryName,
-  getGUIInstallPath,
-  getNodeEngineName,
-  getOSLabel,
-  type OperatingSystem,
-} from "@/lib/detectOS";
+import { getGUIInstallPath, type OperatingSystem } from "@/lib/detectOS";
+import { useLatestReleaseDownload } from "@/hooks/useLatestReleaseDownload";
 
 interface GuideDesktopDownloadProps {
   variant?: "inline" | "steps" | "button";
@@ -20,33 +12,24 @@ export function GuideDesktopDownload({
   variant = "inline",
   className = "",
 }: GuideDesktopDownloadProps) {
-  const [os, setOs] = useState<OperatingSystem>("unknown");
-  const [releasesUrl, setReleasesUrl] = useState(GITHUB_RELEASES_URL);
+  const { os, osLabel, latestVersion, releasesUrl, download, fallbackName } =
+    useLatestReleaseDownload();
 
-  useEffect(() => {
-    setOs(detectOS());
-    fetch("/api/onboarding/config", { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json) => {
-        if (json?.releasesUrl) setReleasesUrl(String(json.releasesUrl));
-      })
-      .catch(() => {});
-  }, []);
-
-  const guiName = getGUIBinaryName(os);
-  const engineName = getNodeEngineName(os);
+  const installerName = download?.name ?? fallbackName;
+  const downloadHref = download?.url ?? releasesUrl;
   const installPath = getGUIInstallPath(os);
-  const osLabel = getOSLabel(os);
+  const versionLabel = latestVersion ? ` (v${latestVersion})` : "";
 
   if (variant === "button") {
     return (
       <a
-        href={releasesUrl}
+        href={downloadHref}
         target="_blank"
         rel="noopener noreferrer"
         className={className}
       >
         Download desktop app
+        {latestVersion ? ` v${latestVersion}` : ""}
         <i className="fa-solid fa-arrow-right ml-2" />
       </a>
     );
@@ -56,8 +39,9 @@ export function GuideDesktopDownload({
     return (
       <ol className={`list-inside list-decimal space-y-2 text-sm text-content-secondary ${className}`}>
         <li>
-          Download{" "}
-          <code className="text-content-primary">{guiName}</code> from{" "}
+          Download the AICW Node desktop app for{" "}
+          <strong className="text-content-primary">{osLabel}</strong>
+          {versionLabel} from{" "}
           <a
             href={releasesUrl}
             target="_blank"
@@ -68,28 +52,7 @@ export function GuideDesktopDownload({
           </a>
           .
         </li>
-        {os === "macos" ? (
-          <>
-            <li>Unzip the downloaded file and move AICW Node.app to Applications.</li>
-            <li>Open the app and accept the license on first launch.</li>
-          </>
-        ) : os === "linux" ? (
-          <>
-            <li>
-              Unzip the download, then:{" "}
-              <code className="text-content-primary">chmod +x aicw-node-setup-linux-amd64 aicw-node</code>
-            </li>
-            <li>Run the setup app and accept the license.</li>
-          </>
-        ) : (
-          <>
-            <li>
-              Run{" "}
-              <code className="text-content-primary">{guiName}</code> and follow the installer.
-            </li>
-            <li>Open AICW Node from the Start menu or desktop shortcut and accept the license.</li>
-          </>
-        )}
+        {renderInstallSteps(os, installerName)}
         <li>
           Node files are stored in{" "}
           <code className="text-content-primary">{installPath}</code>.
@@ -100,9 +63,9 @@ export function GuideDesktopDownload({
 
   return (
     <p className={className}>
-      Download{" "}
-      <code className="text-content-primary">{guiName}</code> for{" "}
-      <span className="text-content-primary">{osLabel}</span> from{" "}
+      Download the AICW Node desktop app for{" "}
+      <span className="text-content-primary">{osLabel}</span>
+      {versionLabel} from{" "}
       <a
         href={releasesUrl}
         target="_blank"
@@ -114,5 +77,46 @@ export function GuideDesktopDownload({
       . The desktop app handles install, wallet sign-in, node registration, local
       config files, and start/stop.
     </p>
+  );
+}
+
+function renderInstallSteps(os: OperatingSystem, installerName: string) {
+  if (os === "macos") {
+    return (
+      <>
+        <li>Unzip the downloaded file and move AICW Node.app to Applications.</li>
+        <li>Open the app and accept the license on first launch.</li>
+      </>
+    );
+  }
+
+  if (os === "linux") {
+    return (
+      <>
+        <li>
+          Unzip the download, then:{" "}
+          <code className="text-content-primary">
+            chmod +x {installerName.replace(/\.zip$/i, "")} aicw-node
+          </code>
+        </li>
+        <li>Run the setup app and accept the license.</li>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <li>
+        Run the downloaded installer
+        {installerName ? (
+          <>
+            {" "}
+            (<code className="text-content-primary">{installerName}</code>)
+          </>
+        ) : null}{" "}
+        and follow the prompts.
+      </li>
+      <li>Open AICW Node from the Start menu or desktop shortcut and accept the license.</li>
+    </>
   );
 }
