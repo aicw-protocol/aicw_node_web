@@ -35,15 +35,69 @@ interface NodeRewardsResponse {
 
 type LoadState = "loading" | "ready" | "error" | "unconfigured";
 
+const PAGE_SIZE = 10;
+
 function formatDate(iso: string): string {
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
   }).format(new Date(iso));
 }
 
+function TablePagination({
+  page,
+  totalPages,
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+
+  return (
+    <nav
+      aria-label="Node rewards pages"
+      className="flex flex-wrap items-center justify-center gap-1 border-t border-surface-border px-4 py-3"
+    >
+      <button
+        type="button"
+        onClick={() => onPageChange(page - 1)}
+        disabled={page <= 1}
+        className="rounded border border-surface-border px-2.5 py-1 text-xs text-content-secondary transition hover:border-accent hover:text-content-primary disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        Prev
+      </button>
+      {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
+        <button
+          key={pageNumber}
+          type="button"
+          onClick={() => onPageChange(pageNumber)}
+          aria-current={pageNumber === page ? "page" : undefined}
+          className={`min-w-[2rem] rounded border px-2.5 py-1 text-xs tabular-nums transition ${
+            pageNumber === page
+              ? "border-accent bg-accent/10 text-accent"
+              : "border-surface-border text-content-secondary hover:border-accent hover:text-content-primary"
+          }`}
+        >
+          {pageNumber}
+        </button>
+      ))}
+      <button
+        type="button"
+        onClick={() => onPageChange(page + 1)}
+        disabled={page >= totalPages}
+        className="rounded border border-surface-border px-2.5 py-1 text-xs text-content-secondary transition hover:border-accent hover:text-content-primary disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        Next
+      </button>
+    </nav>
+  );
+}
+
 export function NodeRewardsOverview() {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [data, setData] = useState<NodeRewardsResponse | null>(null);
+  const [page, setPage] = useState(1);
 
   const loadRewards = useCallback(async () => {
     setLoadState("loading");
@@ -64,6 +118,26 @@ export function NodeRewardsOverview() {
   useEffect(() => {
     loadRewards();
   }, [loadRewards]);
+
+  const earningNodes =
+    data?.nodes.filter(
+      (node) =>
+        node.committeeWalletOpens > 0 ||
+        node.rewardSol > 0 ||
+        node.rewardToken > 0,
+    ) ?? [];
+
+  const totalPages = Math.max(1, Math.ceil(earningNodes.length / PAGE_SIZE));
+
+  useEffect(() => {
+    setPage(1);
+  }, [earningNodes.length]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   if (loadState === "loading") {
     return (
@@ -98,13 +172,8 @@ export function NodeRewardsOverview() {
     );
   }
 
-  const { summary, nodes } = data;
-  const earningNodes = nodes.filter(
-    (node) =>
-      node.committeeWalletOpens > 0 ||
-      node.rewardSol > 0 ||
-      node.rewardToken > 0,
-  );
+  const { summary } = data;
+  const pageNodes = earningNodes.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -175,7 +244,7 @@ export function NodeRewardsOverview() {
               </tr>
             </thead>
             <tbody>
-              {earningNodes.map((node) => (
+              {pageNodes.map((node) => (
                 <tr key={node.id} className="border-b border-surface-border last:border-0">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-0.5">
@@ -216,6 +285,7 @@ export function NodeRewardsOverview() {
               ))}
             </tbody>
           </table>
+          <TablePagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
       )}
 
