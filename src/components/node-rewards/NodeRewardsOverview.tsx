@@ -219,12 +219,6 @@ export function NodeRewardsOverview() {
         </div>
       )}
 
-      {nodes.length > earningNodes.length && (
-        <p className="text-xs text-content-muted">
-          {nodes.length - earningNodes.length} registered node
-          {nodes.length - earningNodes.length === 1 ? "" : "s"} with no rewards yet.
-        </p>
-      )}
     </div>
   );
 }
