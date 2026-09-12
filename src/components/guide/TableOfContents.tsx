@@ -13,6 +13,7 @@ export const GUIDE_TOC_ITEMS: TocItem[] = [
   { id: "requirements", label: "Requirements" },
   { id: "quick-start", label: "Quick Start" },
   { id: "detailed-steps", label: "Detailed Steps" },
+  { id: "mpc-rewards", label: "MPC Signing & TAICW" },
   { id: "troubleshooting", label: "Troubleshooting" },
   { id: "faq", label: "FAQ" },
 ];

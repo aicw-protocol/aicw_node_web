@@ -4,6 +4,7 @@ import { AppLayout } from "@/components/PageShell";
 import { TableOfContents } from "@/components/guide/TableOfContents";
 import { GuideFileLayout } from "@/components/guide/GuideFileLayout";
 import { GuideDesktopDownload } from "@/components/guide/GuideDesktopDownload";
+import { GuideMpcOperations } from "@/components/guide/GuideMpcOperations";
 import { PAGE_CONTAINER } from "@/lib/layout";
 
 export const metadata: Metadata = {
@@ -327,6 +328,27 @@ export default function GuidePage() {
             </ul>
           </div>
         </div>
+      </section>
+
+      <section id="mpc-rewards" className="scroll-mt-6 mt-12">
+        <h2 className="text-2xl font-semibold text-content-primary">
+          MPC Signing &amp; TAICW Rewards
+        </h2>
+        <p className="mt-4 text-content-secondary">
+          Besides wallet issuance (SOL), active committee nodes earn{" "}
+          <strong>TAICW</strong> when they help sign AI wallet transactions through{" "}
+          <code className="text-content-primary">mpc-bridge</code>. Wallet keygen is
+          excluded from this list.
+        </p>
+        <GuideMpcOperations />
+        <p className="mt-4 text-sm text-content-muted">
+          Each successful MPC signature credits TAICW to the participating committee
+          nodes. Track balances on the{" "}
+          <Link href="/node-rewards" className="text-accent hover:underline">
+            Node Rewards
+          </Link>{" "}
+          page.
+        </p>
       </section>
 
       <section id="troubleshooting" className="scroll-mt-6 mt-12">
