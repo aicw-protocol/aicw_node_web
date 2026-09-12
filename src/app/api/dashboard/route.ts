@@ -38,13 +38,28 @@ export async function GET(request: Request) {
       getActiveStakeByWallet(wallet),
     ]);
 
-    const totals = nodes.reduce(
+    const { getNodeBalancesByOwner } = await import("@/lib/db/rewards");
+    const balances = await getNodeBalancesByOwner(wallet);
+
+    const totals = balances.reduce(
       (acc, node) => ({
-        referralWalletOpens: acc.referralWalletOpens + node.referralWalletOpens,
-        rewardSol: acc.rewardSol + node.rewardSol,
-        rewardToken: acc.rewardToken + node.rewardToken,
+        committeeWalletOpens:
+          acc.committeeWalletOpens + node.committeeWalletOpens,
+        referralWalletOpens:
+          acc.referralWalletOpens + node.committeeWalletOpens,
+        rewardSol: acc.rewardSol + node.accruedSol,
+        availableSol: acc.availableSol + node.availableSol,
+        rewardToken: acc.rewardToken + node.accruedToken,
+        availableToken: acc.availableToken + node.availableToken,
       }),
-      { referralWalletOpens: 0, rewardSol: 0, rewardToken: 0 },
+      {
+        committeeWalletOpens: 0,
+        referralWalletOpens: 0,
+        rewardSol: 0,
+        availableSol: 0,
+        rewardToken: 0,
+        availableToken: 0,
+      },
     );
 
     return NextResponse.json({
@@ -52,6 +67,7 @@ export async function GET(request: Request) {
       eligibility,
       activeStake,
       totals,
+      balances,
     });
   } catch (error) {
     console.error("GET /api/dashboard failed:", error);

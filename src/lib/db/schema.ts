@@ -1,4 +1,5 @@
 import type { Pool } from "mysql2/promise";
+import { ensureRewardSchema } from "./rewardSchema";
 
 const NODES_TABLE = `
 CREATE TABLE IF NOT EXISTS nodes (
@@ -184,6 +185,7 @@ export async function ensureSchema(pool: Pool): Promise<void> {
       await ensureNodeOnboardingColumns(pool);
       await ensureStakingUnstakeColumns(pool);
       await pool.query(UNSTAKE_EVENTS_TABLE);
+      await ensureRewardSchema(pool);
     })();
   }
   await schemaReady;

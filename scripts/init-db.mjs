@@ -105,6 +105,42 @@ CREATE TABLE IF NOT EXISTS staking (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 `;
 
+const REWARD_EVENTS_TABLE = `
+CREATE TABLE IF NOT EXISTS reward_events (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  node_id VARCHAR(128) NOT NULL,
+  event_type VARCHAR(64) NOT NULL,
+  wallet_id VARCHAR(128) NULL,
+  tx_signature VARCHAR(128) NULL,
+  amount_sol DECIMAL(20, 9) NOT NULL DEFAULT 0,
+  amount_token DECIMAL(20, 9) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_reward_events_node (node_id),
+  KEY idx_reward_events_type (event_type),
+  KEY idx_reward_events_wallet (wallet_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+`;
+
+const WITHDRAWALS_TABLE = `
+CREATE TABLE IF NOT EXISTS withdrawals (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  node_id VARCHAR(128) NOT NULL,
+  owner_wallet VARCHAR(64) NOT NULL,
+  asset ENUM('sol', 'token') NOT NULL,
+  amount DECIMAL(20, 9) NOT NULL,
+  status ENUM('pending', 'completed', 'failed') NOT NULL DEFAULT 'pending',
+  chain_tx_signature VARCHAR(128) NULL,
+  error_message TEXT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  completed_at TIMESTAMP NULL,
+  PRIMARY KEY (id),
+  KEY idx_withdrawals_node (node_id),
+  KEY idx_withdrawals_owner (owner_wallet),
+  KEY idx_withdrawals_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+`;
+
 const UNSTAKE_EVENTS_TABLE = `
 CREATE TABLE IF NOT EXISTS unstake_events (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -166,6 +202,9 @@ async function migrateExistingSchema(pool) {
     "ALTER TABLE nodes ADD COLUMN longitude DECIMAL(9, 6) NULL COMMENT 'Operator location for map display'",
     "ALTER TABLE nodes ADD COLUMN node_name VARCHAR(64) NULL COMMENT 'Operator-chosen node name from identity'",
     "ALTER TABLE nodes ADD COLUMN public_key VARCHAR(128) NULL COMMENT 'Ed25519 public key hex (never store private key)'",
+    "ALTER TABLE nodes ADD COLUMN withdrawn_sol DECIMAL(20, 9) NOT NULL DEFAULT 0 COMMENT 'SOL already withdrawn to operator'",
+    "ALTER TABLE nodes ADD COLUMN withdrawn_token DECIMAL(20, 9) NOT NULL DEFAULT 0 COMMENT 'TAICW already withdrawn to operator'",
+    "ALTER TABLE nodes ADD COLUMN committee_wallet_opens INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Wallet issuances where node was in MPC committee'",
   ];
   const stakingColumns = [
     "ALTER TABLE staking ADD COLUMN unstake_requested_at TIMESTAMP NULL COMMENT 'When unstake was approved'",
@@ -205,6 +244,10 @@ async function main() {
     console.log("✓ existing columns migrated");
     await pool.query(UNSTAKE_EVENTS_TABLE);
     console.log("✓ unstake_events table ready");
+    await pool.query(REWARD_EVENTS_TABLE);
+    console.log("✓ reward_events table ready");
+    await pool.query(WITHDRAWALS_TABLE);
+    console.log("✓ withdrawals table ready");
   } finally {
     await pool.end();
   }
