@@ -80,7 +80,7 @@ export async function listNodeRewards(): Promise<NodeRewardsResponse> {
             reward_sol, reward_token, withdrawn_sol, withdrawn_token
      FROM nodes
      WHERE status = 'registered'
-     ORDER BY reward_sol DESC, committee_wallet_opens DESC, created_at ASC`,
+     ORDER BY committee_wallet_opens DESC, reward_token DESC, created_at ASC`,
   );
 
   const nodes = rows.map(mapNodeReward);
