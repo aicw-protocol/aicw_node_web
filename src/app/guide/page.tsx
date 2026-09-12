@@ -139,16 +139,7 @@ export default function GuidePage() {
               </span>
               <div>
                 <h3 className="font-medium text-content-primary">Install the desktop app</h3>
-                <GuideDesktopDownload variant="inline" className="mt-1 text-sm text-content-secondary" />
-                <a
-                  href="https://github.com/aicw-protocol/aicw_node/releases"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-3 inline-flex items-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-muted"
-                >
-                  <i className="fa-brands fa-github mr-2" />
-                  Download desktop app
-                </a>
+                <GuideDesktopDownload variant="inline-button" className="mt-1" />
               </div>
             </div>
           </li>
@@ -195,11 +186,10 @@ export default function GuidePage() {
 
       <section id="detailed-steps" className="scroll-mt-6 mt-12">
         <h2 className="text-2xl font-semibold text-content-primary">Detailed Steps</h2>
-        <p className="mt-4 text-content-secondary">
-          Step-by-step using the <strong>AICW Node desktop app</strong> on Windows,
-          Linux, or macOS. Staking still happens on this website; everything else runs
-          in the app.
-        </p>
+        <GuideDesktopDownload
+          variant="platform-intro"
+          className="mt-4 text-content-secondary"
+        />
 
         <div className="mt-6 space-y-8">
           <div>
@@ -584,9 +574,7 @@ export default function GuidePage() {
 
       <section className="mt-12 rounded-lg border border-accent/30 bg-accent/5 p-6 text-center">
         <h2 className="text-xl font-semibold text-content-primary">Ready to start?</h2>
-        <p className="mt-2 text-content-secondary">
-          Download the desktop app, register your node, and track status on the dashboard.
-        </p>
+        <GuideDesktopDownload variant="cta-text" className="mt-2 text-content-secondary" />
         <GuideDesktopDownload
           variant="button"
           className="mt-4 inline-flex items-center rounded-lg bg-accent px-6 py-3 text-sm font-medium text-white hover:bg-accent-muted"

@@ -4,7 +4,7 @@ import { getGUIInstallPath, type OperatingSystem } from "@/lib/detectOS";
 import { useLatestReleaseDownload } from "@/hooks/useLatestReleaseDownload";
 
 interface GuideDesktopDownloadProps {
-  variant?: "inline" | "steps" | "button";
+  variant?: "inline" | "inline-button" | "steps" | "button" | "platform-intro" | "cta-text";
   className?: string;
 }
 
@@ -32,6 +32,65 @@ export function GuideDesktopDownload({
         {latestVersion ? ` v${latestVersion}` : ""}
         <i className="fa-solid fa-arrow-right ml-2" />
       </a>
+    );
+  }
+
+  if (variant === "inline-button") {
+    return (
+      <div className={className}>
+        <p className="text-sm text-content-secondary">
+          Download the AICW Node desktop app for{" "}
+          <span className="text-content-primary">{osLabel}</span>
+          {versionLabel} from{" "}
+          <a
+            href={releasesUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-accent hover:underline"
+          >
+            GitHub Releases
+          </a>
+          . The desktop app handles install, wallet sign-in, node registration, local
+          config files, and start/stop.
+        </p>
+        <a
+          href={downloadHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-flex items-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-muted"
+        >
+          <i className="fa-brands fa-github mr-2" />
+          Download for {osLabel}
+          {latestVersion ? ` (v${latestVersion})` : ""}
+        </a>
+      </div>
+    );
+  }
+
+  if (variant === "platform-intro") {
+    const platformLabel =
+      os === "unknown" ? "Windows, Linux, or macOS" : osLabel;
+
+    return (
+      <p className={className}>
+        Step-by-step using the <strong>AICW Node desktop app</strong> on{" "}
+        {os === "unknown" ? (
+          platformLabel
+        ) : (
+          <strong>{platformLabel}</strong>
+        )}
+        . Staking still happens on this website; everything else runs in the app.
+      </p>
+    );
+  }
+
+  if (variant === "cta-text") {
+    return (
+      <p className={className}>
+        Download the AICW Node desktop app for{" "}
+        <span className="text-content-primary">{osLabel}</span>
+        {versionLabel}, register your node, and track status on the dashboard.
+      </p>
     );
   }
 
