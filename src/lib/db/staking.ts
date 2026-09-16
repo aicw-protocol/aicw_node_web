@@ -1,5 +1,7 @@
 import type { RowDataPacket, ResultSetHeader } from "mysql2";
+import type { Pool } from "mysql2/promise";
 import { getPool } from "./pool";
+import { ensureStakingSchema } from "./stakingSchema";
 import type { StakingRecord, StakingStatus } from "./types";
 import { UNSTAKE_COOLDOWN_HOURS } from "@/lib/unstakeConstants";
 
@@ -27,6 +29,12 @@ const STAKING_SELECT = `
   last_initiated_node_id, last_initiated_node_name
 `;
 
+async function getStakingPool(): Promise<Pool> {
+  const pool = await getStakingPool();
+  await ensureStakingSchema(pool);
+  return pool;
+}
+
 function mapStaking(row: StakingRow): StakingRecord {
   return {
     id: row.id,
@@ -53,7 +61,7 @@ function mapStaking(row: StakingRow): StakingRecord {
 export async function listActiveStakesByWallet(
   wallet: string,
 ): Promise<StakingRecord[]> {
-  const pool = await getPool();
+  const pool = await getStakingPool();
   const [rows] = await pool.query<StakingRow[]>(
     `SELECT ${STAKING_SELECT}
      FROM staking
@@ -67,7 +75,7 @@ export async function listActiveStakesByWallet(
 export async function listUnboundActiveStakesByWallet(
   wallet: string,
 ): Promise<StakingRecord[]> {
-  const pool = await getPool();
+  const pool = await getStakingPool();
   const [rows] = await pool.query<StakingRow[]>(
     `SELECT ${STAKING_SELECT}
      FROM staking
@@ -96,7 +104,7 @@ export async function getActiveStakeByWallet(
 export async function getActiveStakeByBoundNodeId(
   nodeId: string,
 ): Promise<StakingRecord | null> {
-  const pool = await getPool();
+  const pool = await getStakingPool();
   const [rows] = await pool.query<StakingRow[]>(
     `SELECT ${STAKING_SELECT}
      FROM staking
@@ -110,7 +118,7 @@ export async function getActiveStakeByBoundNodeId(
 export async function getPendingUnstakeByWallet(
   wallet: string,
 ): Promise<StakingRecord | null> {
-  const pool = await getPool();
+  const pool = await getStakingPool();
   const [rows] = await pool.query<StakingRow[]>(
     `SELECT ${STAKING_SELECT}
      FROM staking
@@ -123,7 +131,7 @@ export async function getPendingUnstakeByWallet(
 }
 
 export async function listStakesByWallet(wallet: string): Promise<StakingRecord[]> {
-  const pool = await getPool();
+  const pool = await getStakingPool();
   const [rows] = await pool.query<StakingRow[]>(
     `SELECT ${STAKING_SELECT}
      FROM staking
@@ -137,7 +145,7 @@ export async function listStakesByWallet(wallet: string): Promise<StakingRecord[
 export async function findStakeByTxSignature(
   txSignature: string,
 ): Promise<StakingRecord | null> {
-  const pool = await getPool();
+  const pool = await getStakingPool();
   const [rows] = await pool.query<StakingRow[]>(
     `SELECT ${STAKING_SELECT}
      FROM staking WHERE tx_signature = :txSignature LIMIT 1`,
@@ -152,7 +160,7 @@ export async function createStake(input: {
   txSignature: string;
   curveRegisteredCountAtStake: number;
 }): Promise<StakingRecord> {
-  const pool = await getPool();
+  const pool = await getStakingPool();
 
   const duplicate = await findStakeByTxSignature(input.txSignature);
   if (duplicate) {
@@ -188,7 +196,7 @@ export async function bindOldestUnboundStakeToNode(input: {
   wallet: string;
   nodeId: string;
 }): Promise<StakingRecord> {
-  const pool = await getPool();
+  const pool = await getStakingPool();
   const unbound = await listUnboundActiveStakesByWallet(input.wallet);
   const stake = unbound[0];
   if (!stake) {
@@ -233,7 +241,7 @@ export async function requestUnstakeForStake(input: {
   nodeId?: string | null;
   nodeName?: string | null;
 }): Promise<StakingRecord> {
-  const pool = await getPool();
+  const pool = await getStakingPool();
   const [rows] = await pool.query<StakingRow[]>(
     `SELECT ${STAKING_SELECT}
      FROM staking
@@ -316,7 +324,7 @@ export async function requestUnstakeForWallet(input: {
 }
 
 export async function listDueUnstakeReturns(): Promise<StakingRecord[]> {
-  const pool = await getPool();
+  const pool = await getStakingPool();
   const [rows] = await pool.query<StakingRow[]>(
     `SELECT ${STAKING_SELECT}
      FROM staking
@@ -332,7 +340,7 @@ export async function markStakeReturned(input: {
   stakeId: number;
   returnTxSignature: string;
 }): Promise<StakingRecord> {
-  const pool = await getPool();
+  const pool = await getStakingPool();
   await pool.execute(
     `UPDATE staking
      SET status = 'returned',

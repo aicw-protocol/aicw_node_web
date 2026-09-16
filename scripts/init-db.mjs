@@ -185,6 +185,15 @@ async function addColumnIfMissing(pool, sql) {
   }
 }
 
+async function addIndexIfMissing(pool, sql) {
+  try {
+    await pool.query(sql);
+  } catch (error) {
+    if (hasErrorCode(error, ["ER_DUP_KEYNAME"])) return;
+    throw error;
+  }
+}
+
 async function migrateExistingSchema(pool) {
   try {
     await pool.query(
@@ -213,11 +222,18 @@ async function migrateExistingSchema(pool) {
     "ALTER TABLE staking ADD COLUMN return_tx_signature VARCHAR(128) NULL COMMENT 'Solana tx sending stake back to operator'",
     "ALTER TABLE staking ADD COLUMN last_initiated_node_id VARCHAR(128) NULL COMMENT 'Last node that triggered unstake'",
     "ALTER TABLE staking ADD COLUMN last_initiated_node_name VARCHAR(64) NULL COMMENT 'Last node name that triggered unstake'",
+    "ALTER TABLE staking ADD COLUMN bound_node_id VARCHAR(128) NULL COMMENT 'Node this stake secures after registration'",
+    "ALTER TABLE staking ADD COLUMN curve_registered_count_at_stake INT UNSIGNED NULL COMMENT 'Global registered node count when stake was recorded'",
   ];
 
   for (const sql of [...nodeColumns, ...stakingColumns]) {
     await addColumnIfMissing(pool, sql);
   }
+
+  await addIndexIfMissing(
+    pool,
+    "ALTER TABLE staking ADD KEY idx_staking_bound_node (bound_node_id)",
+  );
 }
 
 async function main() {
