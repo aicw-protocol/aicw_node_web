@@ -9,7 +9,11 @@ import {
   listUnboundActiveStakesByWallet,
 } from "@/lib/db/staking";
 import { getNextStakeCurveState } from "@/lib/stakingCurveState";
-import { getStakingTreasuryWallet, isStakingTreasuryConfigured } from "@/lib/stakingConfig";
+import {
+  assertTreasuryDiffersFromSender,
+  getStakingTreasuryWallet,
+  isStakingTreasuryConfigured,
+} from "@/lib/stakingConfig";
 import { getSolanaRpcUrl } from "@/lib/solanaCluster";
 import { verifyStakeTransaction } from "@/lib/verifyStakeTx";
 
@@ -127,6 +131,8 @@ export async function POST(request: Request) {
     }
 
     const treasuryWallet = getStakingTreasuryWallet();
+    assertTreasuryDiffersFromSender(wallet, treasuryWallet);
+
     const connection = new Connection(getSolanaRpcUrl(), "confirmed");
 
     const { amountSol } = await verifyStakeTransaction({

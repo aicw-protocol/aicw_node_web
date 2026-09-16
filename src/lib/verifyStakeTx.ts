@@ -28,6 +28,12 @@ export async function verifyStakeTransaction(params: {
   const sender = new PublicKey(params.expectedSender);
   const recipient = new PublicKey(params.expectedRecipient);
 
+  if (sender.equals(recipient)) {
+    throw new Error(
+      "Staking treasury cannot be the same as the sender wallet",
+    );
+  }
+
   let transferredLamports = 0;
 
   for (const instruction of parsed.transaction.message.instructions) {
