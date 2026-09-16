@@ -1,6 +1,6 @@
-import { countRegisteredNodes } from "@/lib/db/nodes";
 import { countUnboundActiveStakes } from "@/lib/db/staking";
-import { formatStakeSol, requiredStakeSol } from "@/lib/stakingCurve";
+import { formatStakeSol } from "@/lib/stakingCurve";
+import { getNextStakeCurveState } from "@/lib/stakingCurveState";
 
 export interface RegistrationEligibility {
   registeredNodeCount: number;
@@ -13,9 +13,11 @@ export interface RegistrationEligibility {
 export async function getRegistrationEligibility(
   wallet: string,
 ): Promise<RegistrationEligibility> {
-  const registeredNodeCount = await countRegisteredNodes();
-  const required = requiredStakeSol(registeredNodeCount);
-  const unboundActiveStakes = await countUnboundActiveStakes(wallet);
+  const [curveState, unboundActiveStakes] = await Promise.all([
+    getNextStakeCurveState(),
+    countUnboundActiveStakes(wallet),
+  ]);
+  const { registeredNodeCount, requiredStakeSol: required } = curveState;
 
   if (required <= 0) {
     return {

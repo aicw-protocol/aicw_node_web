@@ -22,6 +22,8 @@ import {
 
 interface CurveResponse {
   registeredNodeCount: number;
+  globalUnboundActiveStakes?: number;
+  curvePosition?: number;
   requiredStakeSol: number;
   requiredStakeSolFormatted: string;
   freeNodeThreshold: number;
@@ -138,6 +140,7 @@ export function StakingPanel() {
       }
 
       toast.success(`Staked ${formatStakeSol(required)} SOL`, { id: "stake-tx" });
+      window.dispatchEvent(new Event("aicw-staking-updated"));
       await loadData();
     } catch (error) {
       const message =
@@ -188,6 +191,7 @@ export function StakingPanel() {
       toast.success(
         `Unstake approved — SOL returns ${formatUnstakeReturnWaitShort()}`,
       );
+      window.dispatchEvent(new Event("aicw-staking-updated"));
       await loadData();
     } catch (error) {
       toast.error(
@@ -328,7 +332,7 @@ export function StakingPanel() {
                           timeStyle: "short",
                         })}
                         {stake.curveRegisteredCountAtStake != null
-                          ? ` · curve at ${stake.curveRegisteredCountAtStake} nodes`
+                          ? ` · curve slot ${stake.curveRegisteredCountAtStake}`
                           : ""}
                       </p>
                     </div>

@@ -93,6 +93,16 @@ export async function countUnboundActiveStakes(wallet: string): Promise<number> 
   return stakes.length;
 }
 
+export async function countGlobalUnboundActiveStakes(): Promise<number> {
+  const pool = await getStakingPool();
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT COUNT(*) AS total
+     FROM staking
+     WHERE status = 'active' AND bound_node_id IS NULL`,
+  );
+  return Number(rows[0]?.total ?? 0);
+}
+
 /** @deprecated Prefer listActiveStakesByWallet — kept for callers expecting one record. */
 export async function getActiveStakeByWallet(
   wallet: string,

@@ -55,6 +55,8 @@ export default function StakingPageClient() {
             <StakingCurveChart
               points={curve.points}
               registeredNodeCount={curve.registeredNodeCount}
+              curvePosition={curve.curvePosition ?? curve.registeredNodeCount}
+              globalUnboundActiveStakes={curve.globalUnboundActiveStakes ?? 0}
               requiredStakeSol={curve.requiredStakeSol}
             />
           ) : null}

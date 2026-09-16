@@ -17,6 +17,8 @@ import { formatStakeSol, STAKE_EXP_GROWTH_RATE } from "@/lib/stakingCurve";
 interface StakingCurveChartProps {
   points: CurvePoint[];
   registeredNodeCount: number;
+  curvePosition?: number;
+  globalUnboundActiveStakes?: number;
   requiredStakeSol: number;
 }
 
@@ -45,6 +47,8 @@ function ChartTooltip({
 export function StakingCurveChart({
   points,
   registeredNodeCount,
+  curvePosition = registeredNodeCount,
+  globalUnboundActiveStakes = 0,
   requiredStakeSol,
 }: StakingCurveChartProps) {
   const chartData = points.map((p) => ({
@@ -58,12 +62,19 @@ export function StakingCurveChart({
         <div>
           <h2 className="text-lg font-medium text-content-primary">Staking fee curve</h2>
           <p className="text-sm text-content-secondary">
-            X: registered nodes · Y: required stake for the next node (SOL)
+            X: curve slot (registered + unbound stakes) · Y: next stake (SOL)
           </p>
         </div>
         <p className="text-sm text-content-secondary">
-          Current:{" "}
-          <span className="font-medium text-content-primary">{registeredNodeCount}</span> nodes ·{" "}
+          Current slot:{" "}
+          <span className="font-medium text-content-primary">{curvePosition}</span>
+          {globalUnboundActiveStakes > 0 ? (
+            <>
+              {" "}
+              ({registeredNodeCount} registered + {globalUnboundActiveStakes} unbound)
+            </>
+          ) : null}{" "}
+          ·{" "}
           <span className="font-medium text-accent">
             {formatStakeSol(requiredStakeSol)} SOL
           </span>
@@ -108,18 +119,18 @@ export function StakingCurveChart({
               activeDot={{ r: 4, fill: "#9c7cff" }}
             />
             <ReferenceLine
-              x={registeredNodeCount}
+              x={curvePosition}
               stroke="#22c55e"
               strokeDasharray="4 4"
               label={{
-                value: "Now",
+                value: "Next",
                 fill: "#22c55e",
                 fontSize: 11,
                 position: "insideTopLeft",
               }}
             />
             <ReferenceDot
-              x={registeredNodeCount}
+              x={curvePosition}
               y={requiredStakeSol}
               r={5}
               fill="#22c55e"

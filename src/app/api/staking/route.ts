@@ -2,14 +2,13 @@ import { NextResponse } from "next/server";
 import { PublicKey } from "@solana/web3.js";
 import { Connection } from "@solana/web3.js";
 import { isDatabaseConfigured } from "@/lib/db/config";
-import { countRegisteredNodes } from "@/lib/db/nodes";
 import {
   createStake,
   listActiveStakesByWallet,
   listStakesByWallet,
   listUnboundActiveStakesByWallet,
 } from "@/lib/db/staking";
-import { requiredStakeSol } from "@/lib/stakingCurve";
+import { getNextStakeCurveState } from "@/lib/stakingCurveState";
 import { getStakingTreasuryWallet, isStakingTreasuryConfigured } from "@/lib/stakingConfig";
 import { getSolanaRpcUrl } from "@/lib/solanaCluster";
 import { verifyStakeTransaction } from "@/lib/verifyStakeTx";
@@ -49,12 +48,12 @@ export async function GET(request: Request) {
   }
 
   try {
-    const [stakes, activeStakes, unboundActiveStakes, registeredNodeCount] =
+    const [stakes, activeStakes, unboundActiveStakes, curveState] =
       await Promise.all([
         listStakesByWallet(wallet),
         listActiveStakesByWallet(wallet),
         listUnboundActiveStakesByWallet(wallet),
-        countRegisteredNodes(),
+        getNextStakeCurveState(),
       ]);
 
     return NextResponse.json({
@@ -62,8 +61,10 @@ export async function GET(request: Request) {
       activeStakes,
       unboundActiveStakes,
       activeStake: activeStakes[0] ?? null,
-      registeredNodeCount,
-      requiredStakeSol: requiredStakeSol(registeredNodeCount),
+      registeredNodeCount: curveState.registeredNodeCount,
+      globalUnboundActiveStakes: curveState.globalUnboundActiveStakes,
+      curvePosition: curveState.curvePosition,
+      requiredStakeSol: curveState.requiredStakeSol,
     });
   } catch (error) {
     console.error("GET /api/staking failed:", error);
@@ -112,8 +113,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const registeredNodeCount = await countRegisteredNodes();
-    const minAmountSol = requiredStakeSol(registeredNodeCount);
+    const curveState = await getNextStakeCurveState();
+    const minAmountSol = curveState.requiredStakeSol;
 
     if (minAmountSol <= 0) {
       return NextResponse.json(
@@ -140,7 +141,7 @@ export async function POST(request: Request) {
       wallet,
       amountSol,
       txSignature,
-      curveRegisteredCountAtStake: registeredNodeCount,
+      curveRegisteredCountAtStake: curveState.curvePosition,
     });
     return NextResponse.json({ stake }, { status: 201 });
   } catch (error) {

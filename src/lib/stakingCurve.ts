@@ -15,6 +15,30 @@ export interface CurvePoint {
 }
 
 /**
+ * Curve index for the next stake or registration slot.
+ * Registered nodes plus unbound active stakes (global) both advance the curve.
+ */
+export function curvePositionForNextStake(
+  registeredNodeCount: number,
+  globalUnboundActiveStakes = 0,
+): number {
+  if (!Number.isFinite(globalUnboundActiveStakes) || globalUnboundActiveStakes < 0) {
+    throw new Error("globalUnboundActiveStakes must be a non-negative number");
+  }
+  return registeredNodeCount + Math.floor(globalUnboundActiveStakes);
+}
+
+/** Required stake (SOL) at the next curve slot. */
+export function requiredStakeForNextSlot(
+  registeredNodeCount: number,
+  globalUnboundActiveStakes = 0,
+): number {
+  return requiredStakeSol(
+    curvePositionForNextStake(registeredNodeCount, globalUnboundActiveStakes),
+  );
+}
+
+/**
  * Required stake (SOL) to register the next node when `registeredNodeCount`
  * nodes already exist in the DB.
  *
@@ -63,6 +87,6 @@ export function meetsMinimumStake(actualSol: number, requiredSol: number): boole
 
 export function formatStakeSol(sol: number): string {
   if (sol === 0) return "0.00";
-  if (sol < 0.01) return sol.toFixed(4);
+  if (sol < 0.01) return sol.toFixed(5);
   return sol.toFixed(3);
 }

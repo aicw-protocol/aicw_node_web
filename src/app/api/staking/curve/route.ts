@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { countRegisteredNodes } from "@/lib/db/nodes";
 import { isDatabaseConfigured } from "@/lib/db/config";
 import {
   buildCurvePoints,
   FREE_NODE_THRESHOLD,
-  requiredStakeSol,
   formatStakeSol,
 } from "@/lib/stakingCurve";
+import { getNextStakeCurveState } from "@/lib/stakingCurveState";
 import {
   getStakingTreasuryWallet,
   isStakingTreasuryConfigured,
@@ -23,9 +22,10 @@ export async function GET() {
   }
 
   try {
-    const registeredNodeCount = await countRegisteredNodes();
-    const required = requiredStakeSol(registeredNodeCount);
-    const chartMax = Math.max(registeredNodeCount + 25, FREE_NODE_THRESHOLD + 20);
+    const curveState = await getNextStakeCurveState();
+    const { registeredNodeCount, globalUnboundActiveStakes, curvePosition, requiredStakeSol: required } =
+      curveState;
+    const chartMax = Math.max(curvePosition + 25, FREE_NODE_THRESHOLD + 20);
 
     let treasuryWallet: string | null = null;
     if (isStakingTreasuryConfigured()) {
@@ -34,6 +34,8 @@ export async function GET() {
 
     return NextResponse.json({
       registeredNodeCount,
+      globalUnboundActiveStakes,
+      curvePosition,
       requiredStakeSol: required,
       requiredStakeSolFormatted: formatStakeSol(required),
       freeNodeThreshold: FREE_NODE_THRESHOLD,
