@@ -99,13 +99,6 @@ export function StakingPanel() {
       return;
     }
 
-    if (curve.treasuryWallet === publicKey.toBase58()) {
-      toast.error(
-        "Staking treasury matches your wallet — only network fees would be spent. Contact the operator to fix STAKING_TREASURY_WALLET.",
-      );
-      return;
-    }
-
     const required = curve.requiredStakeSol;
     if (required <= 0) {
       toast.error("Staking is not required yet (fewer than 30 nodes registered)");
@@ -250,11 +243,6 @@ export function StakingPanel() {
     walletStaking?.stakes.filter((stake) => stake.status === "unstake_requested") ??
     [];
   const required = curve.requiredStakeSol;
-  const treasuryMatchesWallet = Boolean(
-    connected &&
-      publicKey &&
-      curve.treasuryWallet === publicKey.toBase58(),
-  );
 
   return (
     <section className="space-y-6">
@@ -291,15 +279,6 @@ export function StakingPanel() {
               </div>
             </div>
 
-            {treasuryMatchesWallet ? (
-              <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-                Staking treasury is set to your connected wallet. Transfers to
-                yourself only charge network fees — set{" "}
-                <code className="text-red-50">STAKING_TREASURY_WALLET</code> to
-                a dedicated treasury address on the server.
-              </p>
-            ) : null}
-
             {required <= 0 ? (
               <p className="text-sm text-emerald-300">
                 Staking not required while fewer than {curve.freeNodeThreshold}{" "}
@@ -310,9 +289,7 @@ export function StakingPanel() {
                 <button
                   type="button"
                   onClick={handleStake}
-                  disabled={
-                    submitting || !curve.treasuryWallet || treasuryMatchesWallet
-                  }
+                  disabled={submitting || !curve.treasuryWallet}
                   className="rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white hover:bg-accent-muted disabled:opacity-50"
                 >
                   {submitting ? (

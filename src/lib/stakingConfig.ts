@@ -30,16 +30,3 @@ export function isStakingTreasuryConfigured(): boolean {
     return false;
   }
 }
-
-/** Staking treasury must differ from the operator wallet or only tx fees are spent. */
-export function assertTreasuryDiffersFromSender(
-  senderWallet: string,
-  treasuryWallet?: string,
-): void {
-  const treasury = treasuryWallet ?? getStakingTreasuryWallet();
-  if (new PublicKey(senderWallet).equals(new PublicKey(treasury))) {
-    throw new Error(
-      "Staking treasury is the same as your wallet. Set STAKING_TREASURY_WALLET to a dedicated treasury address.",
-    );
-  }
-}
