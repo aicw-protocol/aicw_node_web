@@ -30,7 +30,7 @@ const STAKING_SELECT = `
 `;
 
 async function getStakingPool(): Promise<Pool> {
-  const pool = await getStakingPool();
+  const pool = await getPool();
   await ensureStakingSchema(pool);
   return pool;
 }
