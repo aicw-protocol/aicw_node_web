@@ -10,6 +10,8 @@ interface StakingRow extends RowDataPacket {
   staked_at: Date;
   status: StakingStatus;
   tx_signature: string | null;
+  bound_node_id: string | null;
+  curve_registered_count_at_stake: number | null;
   unstake_requested_at: Date | null;
   return_available_at: Date | null;
   returned_at: Date | null;
@@ -20,6 +22,7 @@ interface StakingRow extends RowDataPacket {
 
 const STAKING_SELECT = `
   id, wallet, amount_sol, staked_at, status, tx_signature,
+  bound_node_id, curve_registered_count_at_stake,
   unstake_requested_at, return_available_at, returned_at, return_tx_signature,
   last_initiated_node_id, last_initiated_node_name
 `;
@@ -32,6 +35,8 @@ function mapStaking(row: StakingRow): StakingRecord {
     stakedAt: row.staked_at.toISOString(),
     status: row.status,
     txSignature: row.tx_signature,
+    boundNodeId: row.bound_node_id,
+    curveRegisteredCountAtStake: row.curve_registered_count_at_stake,
     unstakeRequestedAt: row.unstake_requested_at
       ? row.unstake_requested_at.toISOString()
       : null,
@@ -45,17 +50,59 @@ function mapStaking(row: StakingRow): StakingRecord {
   };
 }
 
-export async function getActiveStakeByWallet(
+export async function listActiveStakesByWallet(
   wallet: string,
-): Promise<StakingRecord | null> {
+): Promise<StakingRecord[]> {
   const pool = await getPool();
   const [rows] = await pool.query<StakingRow[]>(
     `SELECT ${STAKING_SELECT}
      FROM staking
      WHERE wallet = :wallet AND status = 'active'
-     ORDER BY staked_at DESC
-     LIMIT 1`,
+     ORDER BY staked_at ASC`,
     { wallet },
+  );
+  return rows.map(mapStaking);
+}
+
+export async function listUnboundActiveStakesByWallet(
+  wallet: string,
+): Promise<StakingRecord[]> {
+  const pool = await getPool();
+  const [rows] = await pool.query<StakingRow[]>(
+    `SELECT ${STAKING_SELECT}
+     FROM staking
+     WHERE wallet = :wallet
+       AND status = 'active'
+       AND bound_node_id IS NULL
+     ORDER BY staked_at ASC`,
+    { wallet },
+  );
+  return rows.map(mapStaking);
+}
+
+export async function countUnboundActiveStakes(wallet: string): Promise<number> {
+  const stakes = await listUnboundActiveStakesByWallet(wallet);
+  return stakes.length;
+}
+
+/** @deprecated Prefer listActiveStakesByWallet — kept for callers expecting one record. */
+export async function getActiveStakeByWallet(
+  wallet: string,
+): Promise<StakingRecord | null> {
+  const stakes = await listActiveStakesByWallet(wallet);
+  return stakes[0] ?? null;
+}
+
+export async function getActiveStakeByBoundNodeId(
+  nodeId: string,
+): Promise<StakingRecord | null> {
+  const pool = await getPool();
+  const [rows] = await pool.query<StakingRow[]>(
+    `SELECT ${STAKING_SELECT}
+     FROM staking
+     WHERE bound_node_id = :nodeId AND status = 'active'
+     LIMIT 1`,
+    { nodeId },
   );
   return rows[0] ? mapStaking(rows[0]) : null;
 }
@@ -103,13 +150,9 @@ export async function createStake(input: {
   wallet: string;
   amountSol: number;
   txSignature: string;
+  curveRegisteredCountAtStake: number;
 }): Promise<StakingRecord> {
   const pool = await getPool();
-
-  const existingActive = await getActiveStakeByWallet(input.wallet);
-  if (existingActive) {
-    throw new Error("This wallet already has an active stake");
-  }
 
   const duplicate = await findStakeByTxSignature(input.txSignature);
   if (duplicate) {
@@ -117,12 +160,15 @@ export async function createStake(input: {
   }
 
   const [result] = await pool.execute<ResultSetHeader>(
-    `INSERT INTO staking (wallet, amount_sol, status, tx_signature)
-     VALUES (:wallet, :amountSol, 'active', :txSignature)`,
+    `INSERT INTO staking (
+       wallet, amount_sol, status, tx_signature, curve_registered_count_at_stake
+     )
+     VALUES (:wallet, :amountSol, 'active', :txSignature, :curveRegisteredCountAtStake)`,
     {
       wallet: input.wallet,
       amountSol: input.amountSol,
       txSignature: input.txSignature,
+      curveRegisteredCountAtStake: input.curveRegisteredCountAtStake,
     },
   );
 
@@ -138,19 +184,77 @@ export async function createStake(input: {
   return mapStaking(rows[0]);
 }
 
-export async function requestUnstake(wallet: string): Promise<StakingRecord> {
-  return requestUnstakeForWallet({ wallet });
+export async function bindOldestUnboundStakeToNode(input: {
+  wallet: string;
+  nodeId: string;
+}): Promise<StakingRecord> {
+  const pool = await getPool();
+  const unbound = await listUnboundActiveStakesByWallet(input.wallet);
+  const stake = unbound[0];
+  if (!stake) {
+    throw new Error(
+      "No unbound active stake found. Stake on the Staking page before registering a node.",
+    );
+  }
+
+  const [result] = await pool.execute<ResultSetHeader>(
+    `UPDATE staking
+     SET bound_node_id = :nodeId
+     WHERE id = :id
+       AND wallet = :wallet
+       AND status = 'active'
+       AND bound_node_id IS NULL`,
+    {
+      id: stake.id,
+      wallet: input.wallet,
+      nodeId: input.nodeId,
+    },
+  );
+
+  if (result.affectedRows !== 1) {
+    throw new Error("Failed to bind stake to node");
+  }
+
+  const [rows] = await pool.query<StakingRow[]>(
+    `SELECT ${STAKING_SELECT} FROM staking WHERE id = :id`,
+    { id: stake.id },
+  );
+
+  if (!rows[0]) {
+    throw new Error("Failed to load bound stake");
+  }
+
+  return mapStaking(rows[0]);
 }
 
-export async function requestUnstakeForWallet(input: {
+export async function requestUnstakeForStake(input: {
+  stakeId: number;
   wallet: string;
   nodeId?: string | null;
   nodeName?: string | null;
 }): Promise<StakingRecord> {
   const pool = await getPool();
-  const active = await getActiveStakeByWallet(input.wallet);
-  if (!active) {
-    throw new Error("No active stake found for this wallet");
+  const [rows] = await pool.query<StakingRow[]>(
+    `SELECT ${STAKING_SELECT}
+     FROM staking
+     WHERE id = :id AND wallet = :wallet AND status = 'active'
+     LIMIT 1`,
+    { id: input.stakeId, wallet: input.wallet },
+  );
+
+  const stake = rows[0];
+  if (!stake) {
+    throw new Error("No active stake found for this request");
+  }
+
+  if (stake.bound_node_id && input.nodeId && stake.bound_node_id !== input.nodeId) {
+    throw new Error("Stake is bound to a different node");
+  }
+
+  if (stake.bound_node_id && !input.nodeId) {
+    throw new Error(
+      "This stake is bound to a node. Remove the node to return its stake.",
+    );
   }
 
   await pool.execute(
@@ -162,22 +266,53 @@ export async function requestUnstakeForWallet(input: {
          last_initiated_node_name = :nodeName
      WHERE id = :id`,
     {
-      id: active.id,
-      nodeId: input.nodeId?.trim() || null,
+      id: stake.id,
+      nodeId: input.nodeId?.trim() || stake.bound_node_id || null,
       nodeName: input.nodeName?.trim() || null,
     },
   );
 
-  const [rows] = await pool.query<StakingRow[]>(
+  const [updated] = await pool.query<StakingRow[]>(
     `SELECT ${STAKING_SELECT} FROM staking WHERE id = :id`,
-    { id: active.id },
+    { id: stake.id },
   );
 
-  if (!rows[0]) {
+  if (!updated[0]) {
     throw new Error("Failed to load unstake request");
   }
 
-  return mapStaking(rows[0]);
+  return mapStaking(updated[0]);
+}
+
+export async function requestUnstakeForWallet(input: {
+  wallet: string;
+  nodeId?: string | null;
+  nodeName?: string | null;
+  stakeId?: number | null;
+}): Promise<StakingRecord> {
+  if (input.stakeId != null) {
+    return requestUnstakeForStake({
+      stakeId: input.stakeId,
+      wallet: input.wallet,
+      nodeId: input.nodeId,
+      nodeName: input.nodeName,
+    });
+  }
+
+  const unbound = await listUnboundActiveStakesByWallet(input.wallet);
+  const stake = unbound[0];
+  if (!stake) {
+    throw new Error(
+      "No unbound active stake found. Bound stakes are returned when you remove their node.",
+    );
+  }
+
+  return requestUnstakeForStake({
+    stakeId: stake.id,
+    wallet: input.wallet,
+    nodeId: input.nodeId,
+    nodeName: input.nodeName,
+  });
 }
 
 export async function listDueUnstakeReturns(): Promise<StakingRecord[]> {
@@ -220,4 +355,9 @@ export async function markStakeReturned(input: {
   }
 
   return mapStaking(rows[0]);
+}
+
+/** Legacy alias */
+export async function requestUnstake(wallet: string): Promise<StakingRecord> {
+  return requestUnstakeForWallet({ wallet });
 }

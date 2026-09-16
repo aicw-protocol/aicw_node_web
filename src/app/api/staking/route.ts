@@ -5,8 +5,9 @@ import { isDatabaseConfigured } from "@/lib/db/config";
 import { countRegisteredNodes } from "@/lib/db/nodes";
 import {
   createStake,
-  getActiveStakeByWallet,
+  listActiveStakesByWallet,
   listStakesByWallet,
+  listUnboundActiveStakesByWallet,
 } from "@/lib/db/staking";
 import { requiredStakeSol } from "@/lib/stakingCurve";
 import { getStakingTreasuryWallet, isStakingTreasuryConfigured } from "@/lib/stakingConfig";
@@ -48,15 +49,19 @@ export async function GET(request: Request) {
   }
 
   try {
-    const [stakes, activeStake, registeredNodeCount] = await Promise.all([
-      listStakesByWallet(wallet),
-      getActiveStakeByWallet(wallet),
-      countRegisteredNodes(),
-    ]);
+    const [stakes, activeStakes, unboundActiveStakes, registeredNodeCount] =
+      await Promise.all([
+        listStakesByWallet(wallet),
+        listActiveStakesByWallet(wallet),
+        listUnboundActiveStakesByWallet(wallet),
+        countRegisteredNodes(),
+      ]);
 
     return NextResponse.json({
       stakes,
-      activeStake,
+      activeStakes,
+      unboundActiveStakes,
+      activeStake: activeStakes[0] ?? null,
       registeredNodeCount,
       requiredStakeSol: requiredStakeSol(registeredNodeCount),
     });
@@ -131,7 +136,12 @@ export async function POST(request: Request) {
       minAmountSol,
     });
 
-    const stake = await createStake({ wallet, amountSol, txSignature });
+    const stake = await createStake({
+      wallet,
+      amountSol,
+      txSignature,
+      curveRegisteredCountAtStake: registeredNodeCount,
+    });
     return NextResponse.json({ stake }, { status: 201 });
   } catch (error) {
     const message =

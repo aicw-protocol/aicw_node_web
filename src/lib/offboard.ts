@@ -4,9 +4,12 @@ import {
   findNodeByIdAndOwner,
 } from "@/lib/db/nodes";
 import {
+  getActiveStakeByBoundNodeId,
   getActiveStakeByWallet,
   getPendingUnstakeByWallet,
+  listActiveStakesByWallet,
   markStakeReturned,
+  requestUnstakeForStake,
   requestUnstakeForWallet,
 } from "@/lib/db/staking";
 import { logUnstakeEvent } from "@/lib/db/unstakeEvents";
@@ -89,6 +92,69 @@ export async function offboardNode(input: {
   });
 
   const remainingNodes = await countNodesByOwner(wallet);
+  const boundStake = await getActiveStakeByBoundNodeId(nodeId);
+
+  if (boundStake) {
+    const pending = await getPendingUnstakeByWallet(wallet);
+    if (pending) {
+      return {
+        phase:
+          pending.returnAvailableAt &&
+          Date.parse(pending.returnAvailableAt) <= Date.now()
+            ? "waiting_return"
+            : "already_pending",
+        wallet,
+        nodeId,
+        nodeName: nodeName ?? node.nodeName,
+        remainingNodes,
+        stake: pending,
+        returnAvailableAt: pending.returnAvailableAt,
+        message: `Unstake already requested. SOL will be returned ${formatUnstakeReturnWaitShort()}.`,
+      };
+    }
+
+    const stake = await requestUnstakeForStake({
+      stakeId: boundStake.id,
+      wallet,
+      nodeId,
+      nodeName: nodeName ?? node.nodeName,
+    });
+
+    if (isImmediateUnstakeReturn()) {
+      await processDueUnstakeReturns();
+    }
+
+    await logUnstakeEvent({
+      stakingId: stake.id,
+      wallet,
+      nodeId,
+      nodeName: nodeName ?? node.nodeName,
+      eventType: "unstake_requested",
+      detail: `Node removed; stake return scheduled ${formatUnstakeReturnWaitShort()}`,
+    });
+
+    await logUnstakeEvent({
+      stakingId: stake.id,
+      wallet,
+      nodeId,
+      nodeName: nodeName ?? node.nodeName,
+      eventType: "return_scheduled",
+      detail: stake.returnAvailableAt
+        ? `Return available at ${stake.returnAvailableAt}`
+        : null,
+    });
+
+    return {
+      phase: "unstake_requested",
+      wallet,
+      nodeId,
+      nodeName: nodeName ?? node.nodeName,
+      remainingNodes,
+      stake,
+      returnAvailableAt: stake.returnAvailableAt,
+      message: `Node removed. Its staked SOL will be returned to ${wallet} ${formatUnstakeReturnWaitShort()}.`,
+    };
+  }
 
   if (remainingNodes > 0) {
     return {
@@ -99,16 +165,18 @@ export async function offboardNode(input: {
       remainingNodes,
       stake: null,
       returnAvailableAt: null,
-      message: `${remainingNodes} registered node(s) remain. Staked SOL returns when all nodes are removed.`,
+      message: `${remainingNodes} registered node(s) remain.`,
     };
   }
 
   const pending = await getPendingUnstakeByWallet(wallet);
   if (pending) {
     return {
-      phase: pending.returnAvailableAt && Date.parse(pending.returnAvailableAt) <= Date.now()
-        ? "waiting_return"
-        : "already_pending",
+      phase:
+        pending.returnAvailableAt &&
+        Date.parse(pending.returnAvailableAt) <= Date.now()
+          ? "waiting_return"
+          : "already_pending",
       wallet,
       nodeId,
       nodeName: nodeName ?? node.nodeName,
@@ -119,8 +187,8 @@ export async function offboardNode(input: {
     };
   }
 
-  const activeStake = await getActiveStakeByWallet(wallet);
-  if (!activeStake || activeStake.amountSol <= 0) {
+  const legacyActive = await listActiveStakesByWallet(wallet);
+  if (legacyActive.length === 0) {
     return {
       phase: "no_stake",
       wallet,
@@ -137,6 +205,7 @@ export async function offboardNode(input: {
     wallet,
     nodeId,
     nodeName: nodeName ?? node.nodeName,
+    stakeId: legacyActive[0].id,
   });
 
   if (isImmediateUnstakeReturn()) {

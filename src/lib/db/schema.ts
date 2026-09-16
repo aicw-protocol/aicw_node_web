@@ -122,6 +122,30 @@ async function ensureNodePingColumn(pool: Pool): Promise<void> {
   }
 }
 
+async function ensureStakingPerNodeColumns(pool: Pool): Promise<void> {
+  const alters = [
+    "ALTER TABLE staking ADD COLUMN bound_node_id VARCHAR(128) NULL COMMENT 'Node this stake secures after registration'",
+    "ALTER TABLE staking ADD COLUMN curve_registered_count_at_stake INT UNSIGNED NULL COMMENT 'Global registered node count when stake was recorded'",
+    "ALTER TABLE staking ADD KEY idx_staking_bound_node (bound_node_id)",
+  ];
+
+  for (const sql of alters) {
+    try {
+      await pool.query(sql);
+    } catch (error) {
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        (error.code === "ER_DUP_FIELDNAME" || error.code === "ER_DUP_KEYNAME")
+      ) {
+        continue;
+      }
+      throw error;
+    }
+  }
+}
+
 async function ensureStakingUnstakeColumns(pool: Pool): Promise<void> {
   const alters = [
     "ALTER TABLE staking ADD COLUMN unstake_requested_at TIMESTAMP NULL COMMENT 'When unstake was approved'",
@@ -184,6 +208,7 @@ export async function ensureSchema(pool: Pool): Promise<void> {
       await ensureNodePingColumn(pool);
       await ensureNodeOnboardingColumns(pool);
       await ensureStakingUnstakeColumns(pool);
+      await ensureStakingPerNodeColumns(pool);
       await pool.query(UNSTAKE_EVENTS_TABLE);
       await ensureRewardSchema(pool);
     })();

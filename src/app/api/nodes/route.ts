@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { isDatabaseConfigured } from "@/lib/db/config";
-import { listNodes, registerNode } from "@/lib/db/nodes";
+import { countRegisteredNodes, listNodes, registerNode } from "@/lib/db/nodes";
 import { assertCanRegisterNode } from "@/lib/nodeEligibility";
+import { bindOldestUnboundStakeToNode } from "@/lib/db/staking";
+import { requiredStakeSol } from "@/lib/stakingCurve";
 import { addNodeToMembershipWhitelist } from "@/lib/consul/membershipWhitelist";
 import { isConsulWhitelistEnabled } from "@/lib/consul/config";
 import { verifyNodeRegistrationSignature } from "@/lib/guiAuth";
@@ -135,6 +137,14 @@ export async function POST(request: Request) {
       publicKey,
       ownerWallet,
     });
+
+    const registeredNodeCount = await countRegisteredNodes();
+    if (requiredStakeSol(registeredNodeCount - 1) > 0) {
+      await bindOldestUnboundStakeToNode({
+        wallet: ownerWallet,
+        nodeId: node.nodeId,
+      });
+    }
 
     try {
       const whitelist = await addNodeToMembershipWhitelist({

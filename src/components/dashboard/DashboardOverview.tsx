@@ -19,6 +19,7 @@ import {
 interface RegistrationEligibility {
   registeredNodeCount: number;
   requiredStakeSol: number;
+  unboundActiveStakes: number;
   canRegister: boolean;
   blockReason: string | null;
 }
@@ -27,6 +28,8 @@ interface DashboardResponse {
   nodes: NodeRecord[];
   eligibility: RegistrationEligibility;
   activeStake: StakingRecord | null;
+  activeStakes?: StakingRecord[];
+  unboundActiveStakes?: number;
   totals: {
     committeeWalletOpens: number;
     referralWalletOpens: number;
@@ -439,6 +442,7 @@ export function DashboardOverview() {
       <DesktopAppPanel
         eligibility={data.eligibility}
         activeStake={data.activeStake}
+        unboundActiveStakes={data.unboundActiveStakes ?? data.eligibility.unboundActiveStakes}
       />
 
       <RemoveNodeStatusPanel wallet={publicKey.toBase58()} />

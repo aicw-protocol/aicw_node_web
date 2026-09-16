@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { PublicKey } from "@solana/web3.js";
 import { isDatabaseConfigured } from "@/lib/db/config";
-import { countNodesByOwner } from "@/lib/db/nodes";
 import { requestUnstakeForWallet } from "@/lib/db/staking";
 import { logUnstakeEvent } from "@/lib/db/unstakeEvents";
 import { formatUnstakeReturnWaitShort, isImmediateUnstakeReturn } from "@/lib/unstakeConstants";
@@ -12,7 +11,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * POST /api/staking/unstake
- * Wallet-level unstake request. Requires zero registered nodes.
+ * Request return of an unbound active stake (optional stakeId).
+ * Stakes bound to a node are returned when that node is removed.
  */
 export async function POST(request: Request) {
   if (!isDatabaseConfigured()) {
@@ -24,6 +24,7 @@ export async function POST(request: Request) {
 
   let body: {
     wallet?: string;
+    stakeId?: number;
     challengeToken?: string;
     signatureBase64?: string;
     signedMessageBase64?: string;
@@ -40,6 +41,10 @@ export async function POST(request: Request) {
   const signatureBase64 = body.signatureBase64?.trim();
   const signedMessageBase64 = body.signedMessageBase64?.trim();
   const message = body.message;
+  const stakeId =
+    body.stakeId != null && Number.isFinite(body.stakeId)
+      ? Number(body.stakeId)
+      : undefined;
 
   if (!wallet) {
     return NextResponse.json({ error: "wallet is required" }, { status: 400 });
@@ -86,17 +91,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const remaining = await countNodesByOwner(ownerWallet);
-    if (remaining > 0) {
-      return NextResponse.json(
-        {
-          error: `Remove all registered nodes before requesting unstake (${remaining} remain).`,
-        },
-        { status: 400 },
-      );
-    }
-
-    const stake = await requestUnstakeForWallet({ wallet: ownerWallet });
+    const stake = await requestUnstakeForWallet({
+      wallet: ownerWallet,
+      stakeId,
+    });
 
     if (isImmediateUnstakeReturn()) {
       await processDueUnstakeReturns();

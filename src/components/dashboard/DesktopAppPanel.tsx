@@ -15,11 +15,13 @@ interface RegistrationEligibility {
 interface DesktopAppPanelProps {
   eligibility: RegistrationEligibility;
   activeStake?: StakingRecord | null;
+  unboundActiveStakes?: number;
 }
 
 export function DesktopAppPanel({
   eligibility,
   activeStake = null,
+  unboundActiveStakes = 0,
 }: DesktopAppPanelProps) {
   const { osLabel, latestVersion, releasesUrl, download } = useLatestReleaseDownload();
 
@@ -50,11 +52,16 @@ export function DesktopAppPanel({
             </span>
           </p>
           <p className="mt-1">
-            Your active stake:{" "}
-            {activeStake?.status === "active"
-              ? `${formatStakeSol(activeStake.amountSol)} SOL`
-              : "None"}
+            Unbound stakes (ready for next node):{" "}
+            <span className="font-medium text-content-primary">
+              {unboundActiveStakes}
+            </span>
           </p>
+          {activeStake?.status === "active" ? (
+            <p className="mt-1 text-xs text-content-muted">
+              Latest stake: {formatStakeSol(activeStake.amountSol)} SOL
+            </p>
+          ) : null}
           {!canRegister && eligibility.blockReason ? (
             <p className="mt-2 text-amber-700 dark:text-amber-200">{eligibility.blockReason}</p>
           ) : null}

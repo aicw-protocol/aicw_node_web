@@ -540,8 +540,9 @@ export default function GuidePage() {
             <div className="border-t border-surface-border p-4 text-sm text-content-secondary">
               Yes. Register each node separately in the desktop app (each needs its
               own name and identity). One app window runs one node process at a time —
-              run multiple app instances if you need several nodes online at once. Each
-              node may require its own stake once the bonding curve applies.
+              run multiple app instances if you need several nodes online at once. After
+              the free tier, stake once on the Staking page for each new node at the
+              current fee curve before registering it.
             </div>
           </details>
 

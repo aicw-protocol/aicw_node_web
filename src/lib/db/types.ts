@@ -10,6 +10,8 @@ export interface StakingRecord {
   stakedAt: string;
   status: StakingStatus;
   txSignature: string | null;
+  boundNodeId: string | null;
+  curveRegisteredCountAtStake: number | null;
   unstakeRequestedAt: string | null;
   returnAvailableAt: string | null;
   returnedAt: string | null;

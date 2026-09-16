@@ -9,11 +9,7 @@ import {
 } from "@solana/web3.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import toast from "react-hot-toast";
-import {
-  formatStakeSol,
-  lamportsFromSol,
-  meetsMinimumStake,
-} from "@/lib/stakingCurve";
+import { formatStakeSol, lamportsFromSol } from "@/lib/stakingCurve";
 import type { StakingRecord } from "@/lib/db/types";
 import {
   formatUnstakeReturnWait,
@@ -35,6 +31,8 @@ interface CurveResponse {
 
 interface WalletStakingResponse {
   activeStake: StakingRecord | null;
+  activeStakes: StakingRecord[];
+  unboundActiveStakes: StakingRecord[];
   stakes: StakingRecord[];
   requiredStakeSol: number;
 }
@@ -105,11 +103,6 @@ export function StakingPanel() {
       return;
     }
 
-    if (walletStaking?.activeStake) {
-      toast.error("You already have an active stake");
-      return;
-    }
-
     setSubmitting(true);
     try {
       const lamports = lamportsFromSol(required);
@@ -155,7 +148,7 @@ export function StakingPanel() {
     }
   };
 
-  const handleUnstakeRequest = async () => {
+  const handleUnstakeRequest = async (stakeId?: number) => {
     if (!connected || !publicKey) {
       toast.error("Connect your wallet");
       return;
@@ -181,6 +174,7 @@ export function StakingPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           wallet: signed.wallet,
+          stakeId,
           challengeToken: signed.challengeToken,
           signatureBase64: signed.signatureBase64,
           signedMessageBase64: signed.signedMessageBase64,
@@ -239,24 +233,21 @@ export function StakingPanel() {
     );
   }
 
-  const activeStake = walletStaking?.activeStake;
-  const pendingUnstake = walletStaking?.stakes.find(
-    (stake) => stake.status === "unstake_requested",
-  );
+  const activeStakes = walletStaking?.activeStakes ?? [];
+  const unboundStakes = walletStaking?.unboundActiveStakes ?? [];
+  const pendingUnstakes =
+    walletStaking?.stakes.filter((stake) => stake.status === "unstake_requested") ??
+    [];
   const required = curve.requiredStakeSol;
-  const hasSufficientStake =
-    activeStake &&
-    activeStake.status === "active" &&
-    meetsMinimumStake(activeStake.amountSol, required);
 
   return (
     <section className="space-y-6">
       <div className="rounded-xl border border-surface-border bg-surface-panel p-6">
         <h2 className="text-lg font-medium text-content-primary">Stake SOL</h2>
         <p className="mt-2 text-sm text-content-secondary">
-          Send SOL to the treasury wallet when the fee curve requires it. After
-          unstake approval, funds return to your wallet automatically after{" "}
-          {formatUnstakeReturnWait()}.
+          Stake once per node at the current fee curve. Each stake is consumed
+          when you register a node in the desktop app. Removing a node returns
+          its stake after {formatUnstakeReturnWait()}.
         </p>
 
         {!connected ? (
@@ -274,20 +265,13 @@ export function StakingPanel() {
                 </p>
               </div>
               <div className="rounded-lg border border-surface-border bg-surface/60 p-4">
-                <p className="text-xs text-content-muted">Your active stake</p>
+                <p className="text-xs text-content-muted">Unbound stakes</p>
                 <p className="mt-1 text-xl font-semibold text-content-primary">
-                  {activeStake || pendingUnstake
-                    ? `${formatStakeSol((activeStake ?? pendingUnstake)!.amountSol)} SOL`
-                    : "None"}
+                  {unboundStakes.length}
                 </p>
-                {pendingUnstake ? (
-                  <p className="mt-1 text-xs text-amber-300">
-                    Unstake approved — returns{" "}
-                    {pendingUnstake.returnAvailableAt
-                      ? new Date(pendingUnstake.returnAvailableAt).toLocaleString()
-                      : formatUnstakeReturnWaitShort()}
-                  </p>
-                ) : null}
+                <p className="mt-1 text-xs text-content-muted">
+                  {activeStakes.length} active total
+                </p>
               </div>
             </div>
 
@@ -301,11 +285,7 @@ export function StakingPanel() {
                 <button
                   type="button"
                   onClick={handleStake}
-                  disabled={
-                    submitting ||
-                    Boolean(activeStake) ||
-                    !curve.treasuryWallet
-                  }
+                  disabled={submitting || !curve.treasuryWallet}
                   className="rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white hover:bg-accent-muted disabled:opacity-50"
                 >
                   {submitting ? (
@@ -314,34 +294,94 @@ export function StakingPanel() {
                       Processing…
                     </>
                   ) : (
-                    <>Stake {formatStakeSol(required)} SOL</>
+                    <>Stake {formatStakeSol(required)} SOL for next node</>
                   )}
                 </button>
-
-                {activeStake?.status === "active" && (
-                  <button
-                    type="button"
-                    onClick={handleUnstakeRequest}
-                    disabled={submitting}
-                    className="rounded-lg border border-surface-border px-4 py-2.5 text-sm text-content-secondary hover:border-red-500/40 hover:text-red-300 disabled:opacity-50"
-                  >
-                    Request unstake
-                  </button>
-                )}
               </div>
             )}
 
-            {hasSufficientStake && (
+            {unboundStakes.length > 0 && required > 0 ? (
               <p className="text-sm text-emerald-300">
-                Your stake meets the current curve requirement.
+                You have {unboundStakes.length} stake(s) ready — register a node
+                in the desktop app to use one.
               </p>
-            )}
+            ) : null}
 
-            {activeStake?.txSignature && (
-              <p className="font-mono text-xs text-content-muted">
-                Tx: {activeStake.txSignature.slice(0, 20)}…
-              </p>
-            )}
+            {unboundStakes.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-content-muted">
+                  Unbound stakes
+                </p>
+                {unboundStakes.map((stake) => (
+                  <div
+                    key={stake.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-surface-border bg-surface/60 px-4 py-3 text-sm"
+                  >
+                    <div>
+                      <p className="font-medium text-content-primary">
+                        {formatStakeSol(stake.amountSol)} SOL
+                      </p>
+                      <p className="text-xs text-content-muted">
+                        Staked{" "}
+                        {new Date(stake.stakedAt).toLocaleString(undefined, {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
+                        {stake.curveRegisteredCountAtStake != null
+                          ? ` · curve at ${stake.curveRegisteredCountAtStake} nodes`
+                          : ""}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void handleUnstakeRequest(stake.id)}
+                      disabled={submitting}
+                      className="rounded-lg border border-surface-border px-3 py-1.5 text-xs text-content-secondary hover:border-red-500/40 hover:text-red-300 disabled:opacity-50"
+                    >
+                      Request unstake
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {activeStakes.some((stake) => stake.boundNodeId) ? (
+              <div className="space-y-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-content-muted">
+                  Bound to nodes
+                </p>
+                {activeStakes
+                  .filter((stake) => stake.boundNodeId)
+                  .map((stake) => (
+                    <div
+                      key={stake.id}
+                      className="rounded-lg border border-surface-border bg-surface/40 px-4 py-3 text-sm text-content-secondary"
+                    >
+                      {formatStakeSol(stake.amountSol)} SOL →{" "}
+                      <code className="text-content-primary">{stake.boundNodeId}</code>
+                      <span className="ml-2 text-xs text-content-muted">
+                        (returned when node is removed)
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            ) : null}
+
+            {pendingUnstakes.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-amber-300">
+                  Pending returns
+                </p>
+                {pendingUnstakes.map((stake) => (
+                  <p key={stake.id} className="text-sm text-amber-200">
+                    {formatStakeSol(stake.amountSol)} SOL — returns{" "}
+                    {stake.returnAvailableAt
+                      ? new Date(stake.returnAvailableAt).toLocaleString()
+                      : formatUnstakeReturnWaitShort()}
+                  </p>
+                ))}
+              </div>
+            ) : null}
           </div>
         )}
       </div>

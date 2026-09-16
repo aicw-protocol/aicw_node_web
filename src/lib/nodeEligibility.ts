@@ -1,14 +1,11 @@
 import { countRegisteredNodes } from "@/lib/db/nodes";
-import { getActiveStakeByWallet } from "@/lib/db/staking";
-import {
-  formatStakeSol,
-  meetsMinimumStake,
-  requiredStakeSol,
-} from "@/lib/stakingCurve";
+import { countUnboundActiveStakes } from "@/lib/db/staking";
+import { formatStakeSol, requiredStakeSol } from "@/lib/stakingCurve";
 
 export interface RegistrationEligibility {
   registeredNodeCount: number;
   requiredStakeSol: number;
+  unboundActiveStakes: number;
   canRegister: boolean;
   blockReason: string | null;
 }
@@ -18,38 +15,34 @@ export async function getRegistrationEligibility(
 ): Promise<RegistrationEligibility> {
   const registeredNodeCount = await countRegisteredNodes();
   const required = requiredStakeSol(registeredNodeCount);
+  const unboundActiveStakes = await countUnboundActiveStakes(wallet);
 
   if (required <= 0) {
     return {
       registeredNodeCount,
       requiredStakeSol: 0,
+      unboundActiveStakes,
       canRegister: true,
       blockReason: null,
     };
   }
 
-  const stake = await getActiveStakeByWallet(wallet);
-  if (
-    stake?.status === "active" &&
-    meetsMinimumStake(stake.amountSol, required)
-  ) {
+  if (unboundActiveStakes >= 1) {
     return {
       registeredNodeCount,
       requiredStakeSol: required,
+      unboundActiveStakes,
       canRegister: true,
       blockReason: null,
     };
   }
-
-  const blockReason = stake
-    ? `Active stake must be at least ${formatStakeSol(required)} SOL for the current curve.`
-    : `Stake at least ${formatStakeSol(required)} SOL on the Staking page before registering a node.`;
 
   return {
     registeredNodeCount,
     requiredStakeSol: required,
+    unboundActiveStakes,
     canRegister: false,
-    blockReason,
+    blockReason: `Stake ${formatStakeSol(required)} SOL on the Staking page for your next node (fee curve applies).`,
   };
 }
 

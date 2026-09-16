@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { PublicKey } from "@solana/web3.js";
 import { isDatabaseConfigured } from "@/lib/db/config";
 import { listNodesByOwner } from "@/lib/db/nodes";
-import { getActiveStakeByWallet } from "@/lib/db/staking";
+import {
+  countUnboundActiveStakes,
+  listActiveStakesByWallet,
+} from "@/lib/db/staking";
 import { getRegistrationEligibility } from "@/lib/nodeEligibility";
 import {
   SOL_WITHDRAW_MIN,
@@ -37,11 +40,13 @@ export async function GET(request: Request) {
   }
 
   try {
-    const [nodes, eligibility, activeStake] = await Promise.all([
-      listNodesByOwner(wallet),
-      getRegistrationEligibility(wallet),
-      getActiveStakeByWallet(wallet),
-    ]);
+    const [nodes, eligibility, activeStakes, unboundActiveStakes] =
+      await Promise.all([
+        listNodesByOwner(wallet),
+        getRegistrationEligibility(wallet),
+        listActiveStakesByWallet(wallet),
+        countUnboundActiveStakes(wallet),
+      ]);
 
     const { countWalletIssuancesByOwner, getNodeBalancesByOwner } =
       await import("@/lib/db/rewards");
@@ -91,7 +96,9 @@ export async function GET(request: Request) {
     return NextResponse.json({
       nodes: nodesWithBalances,
       eligibility,
-      activeStake,
+      activeStakes,
+      unboundActiveStakes,
+      activeStake: activeStakes[0] ?? null,
       totals: { ...totals, ...walletIssuanceTotals },
       balances,
       rewardConfig: {
