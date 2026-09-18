@@ -20,13 +20,14 @@ interface NodeRow extends RowDataPacket {
   withdrawn_token: string;
   latitude: number | null;
   longitude: number | null;
+  location_pinned: number;
   last_ping_at: Date | null;
 }
 
 const NODE_SELECT =
   `id, owner_wallet, node_id, node_name, public_key, created_at, status,
    referral_wallet_opens, committee_wallet_opens, reward_sol, reward_token,
-   withdrawn_sol, withdrawn_token, latitude, longitude, last_ping_at`;
+   withdrawn_sol, withdrawn_token, latitude, longitude, location_pinned, last_ping_at`;
 
 function mapNode(row: NodeRow): NodeRecord {
   const accruedSol = Number(row.reward_sol);
@@ -54,6 +55,7 @@ function mapNode(row: NodeRow): NodeRecord {
     withdrawnToken,
     latitude: row.latitude === null ? null : Number(row.latitude),
     longitude: row.longitude === null ? null : Number(row.longitude),
+    locationPinned: Boolean(row.location_pinned),
     lastPingAt: row.last_ping_at ? row.last_ping_at.toISOString() : null,
   };
 }

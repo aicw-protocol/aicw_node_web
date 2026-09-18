@@ -151,7 +151,8 @@ export interface NodePingGeo {
 
 /**
  * Update a node's last-ping timestamp (and optional GeoIP location).
- * Called by nodes to signal they are alive.
+ * Called by nodes to signal they are alive. When the caller passes geo=null
+ * because location_pinned is set, only last_ping_at is updated.
  */
 export async function updateNodePing(
   nodeId: string,

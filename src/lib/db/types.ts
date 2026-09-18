@@ -38,6 +38,8 @@ export interface NodeRecord {
   withdrawnToken: number;
   latitude: number | null;
   longitude: number | null;
+  /** When true, ping keeps GeoIP from overwriting latitude/longitude. */
+  locationPinned: boolean;
   lastPingAt: string | null;
 }
 

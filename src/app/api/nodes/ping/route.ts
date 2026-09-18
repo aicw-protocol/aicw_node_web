@@ -93,7 +93,9 @@ export async function POST(request: NextRequest) {
     }
 
     const geo = await resolvePingGeoFromRequest(request);
-    const updated = await updateNodePing(nodeId, geo);
+    // Pinned nodes keep operator-set coordinates; only last_ping_at advances.
+    const geoForUpdate = node.locationPinned ? null : geo;
+    const updated = await updateNodePing(nodeId, geoForUpdate);
 
     if (!updated) {
       return NextResponse.json(
@@ -109,7 +111,8 @@ export async function POST(request: NextRequest) {
       success: true,
       nodeId,
       timestamp: new Date().toISOString(),
-      locationUpdated: geo !== null,
+      locationPinned: node.locationPinned,
+      locationUpdated: geoForUpdate !== null,
     });
   } catch (error) {
     console.error("[nodes/ping] Error:", error);

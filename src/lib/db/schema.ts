@@ -39,6 +39,24 @@ CREATE TABLE IF NOT EXISTS staking (
 
 let schemaReady: Promise<void> | null = null;
 
+async function ensureLocationPinnedColumn(pool: Pool): Promise<void> {
+  try {
+    await pool.query(
+      "ALTER TABLE nodes ADD COLUMN location_pinned TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'When 1, ping updates last_ping_at only; latitude/longitude are not overwritten by GeoIP'",
+    );
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "ER_DUP_FIELDNAME"
+    ) {
+      return;
+    }
+    throw error;
+  }
+}
+
 async function ensureNodeGeoColumns(pool: Pool): Promise<void> {
   const alters = [
     "ALTER TABLE nodes ADD COLUMN latitude DECIMAL(9, 6) NULL COMMENT 'Operator location for map display'",
@@ -205,6 +223,7 @@ export async function ensureSchema(pool: Pool): Promise<void> {
       await pool.query(NODES_TABLE);
       await pool.query(STAKING_TABLE);
       await ensureNodeGeoColumns(pool);
+      await ensureLocationPinnedColumn(pool);
       await ensureNodePingColumn(pool);
       await ensureNodeOnboardingColumns(pool);
       await ensureStakingUnstakeColumns(pool);
