@@ -15,8 +15,6 @@ export interface LatestReleaseInfo {
 }
 
 const DEFAULT_REPO = "aicw-protocol/aicw_node";
-const CACHE_SECONDS = 300;
-
 function repoFromReleasesUrl(releasesUrl: string): string {
   const match = releasesUrl.match(/github\.com\/([^/]+\/[^/]+)\/releases/i);
   return match?.[1] ?? DEFAULT_REPO;
@@ -41,7 +39,7 @@ export async function fetchLatestRelease(): Promise<LatestReleaseInfo | null> {
         Accept: "application/vnd.github+json",
         "User-Agent": "aicw-node-web",
       },
-      next: { revalidate: CACHE_SECONDS },
+      cache: "no-store",
     });
 
     if (!response.ok) return null;

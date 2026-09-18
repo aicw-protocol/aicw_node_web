@@ -2,10 +2,9 @@ import { NextResponse } from "next/server";
 import { fetchLatestRelease } from "@/lib/releases/fetchLatestRelease";
 import { isVersionNewer, normalizeVersion } from "@/lib/releases/version";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
-const SHARED_CACHE_CONTROL =
-  "public, s-maxage=300, stale-while-revalidate=600";
+const SHARED_CACHE_CONTROL = "public, max-age=60, s-maxage=60";
 
 /** GET /api/releases/latest — latest GitHub GUI release for web + desktop. */
 export async function GET(request: Request) {
