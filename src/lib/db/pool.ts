@@ -1,5 +1,6 @@
 import mysql from "mysql2/promise";
 import { getDatabaseConfig, isDatabaseConfigured } from "./config";
+import { ensureSchema } from "./schema";
 
 let pool: mysql.Pool | null = null;
 let poolReady: Promise<mysql.Pool> | null = null;
@@ -28,6 +29,7 @@ export async function getPool(): Promise<mysql.Pool> {
         namedPlaceholders: true,
         timezone: "+00:00",
       });
+      await ensureSchema(nextPool);
       pool = nextPool;
       return nextPool;
     })();
