@@ -107,6 +107,7 @@ function GuiAuthContent() {
   const searchParams = useSearchParams();
   const callback = searchParams.get("callback")?.trim() ?? "";
   const purposeParam = searchParams.get("purpose")?.trim() ?? "login";
+  const expectedWallet = searchParams.get("expectedWallet")?.trim() ?? "";
   const purpose: GuiAuthPurpose = parseGuiAuthPurpose(purposeParam);
   const actionNodeId = searchParams.get("nodeId")?.trim() ?? "";
   const actionNodeName = searchParams.get("nodeName")?.trim() ?? "";
@@ -283,6 +284,12 @@ function GuiAuthContent() {
       setStatus("Connect your wallet first.");
       return;
     }
+    if (isLogin && expectedWallet && wallet !== expectedWallet) {
+      setStatus(
+        `Switch to ${expectedWallet.slice(0, 4)}…${expectedWallet.slice(-4)} in your browser wallet, then try again.`,
+      );
+      return;
+    }
     if (requiresNodeId && !actionNodeId) {
       setStatus(`${purpose} request is missing node ID.`);
       return;
@@ -362,13 +369,20 @@ function GuiAuthContent() {
     requiresNodeId,
     signMessage,
     wallet,
+    expectedWallet,
+    isLogin,
   ]);
 
   useEffect(() => {
-    if (connected && wallet) {
-      setStatus(`Wallet connected: ${wallet.slice(0, 4)}…${wallet.slice(-4)}`);
+    if (!connected || !wallet) return;
+    if (isLogin && expectedWallet && wallet !== expectedWallet) {
+      setStatus(
+        `Connected ${wallet.slice(0, 4)}…${wallet.slice(-4)} — select ${expectedWallet.slice(0, 4)}…${expectedWallet.slice(-4)} in your wallet.`,
+      );
+      return;
     }
-  }, [connected, wallet]);
+    setStatus(`Wallet connected: ${wallet.slice(0, 4)}…${wallet.slice(-4)}`);
+  }, [connected, wallet, expectedWallet, isLogin]);
 
   return (
     <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-6 py-12">
@@ -379,6 +393,16 @@ function GuiAuthContent() {
         <p className="mt-2 text-sm text-content-secondary">
           {actionDescription}
         </p>
+
+        {isLogin && expectedWallet ? (
+          <p className="mt-4 rounded-lg border border-surface-border bg-surface/60 px-4 py-3 text-sm text-content-secondary">
+            Desktop app expects{" "}
+            <span className="font-medium text-content-primary">
+              {expectedWallet.slice(0, 4)}…{expectedWallet.slice(-4)}
+            </span>
+            . Connect that wallet before signing.
+          </p>
+        ) : null}
 
         <div className="mt-6 flex flex-col gap-4">
           <WalletButton layout="default" />
