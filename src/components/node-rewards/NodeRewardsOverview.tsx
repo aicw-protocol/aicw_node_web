@@ -2,12 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CopyIconButton } from "@/components/CopyIconButton";
-import { truncateAddress, truncateNodeId } from "@/lib/formatWallet";
+import { truncateNodeId } from "@/lib/formatWallet";
 import { formatStakeSol } from "@/lib/stakingCurve";
 
 interface NodeRewardEntry {
   id: number;
-  ownerWallet: string;
   nodeId: string;
   createdAt: string;
   status: "registered" | "inactive";
@@ -222,7 +221,6 @@ export function NodeRewardsOverview() {
             <thead>
               <tr className="border-b border-surface-border text-content-muted">
                 <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide">Node ID</th>
-                <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide">Owner</th>
                 <th className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide">
                   Wallets
                 </th>
@@ -256,12 +254,6 @@ export function NodeRewardsOverview() {
                       </span>
                       <CopyIconButton value={node.nodeId} label="Node ID" />
                     </div>
-                  </td>
-                  <td
-                    className="px-4 py-3 font-mono text-xs text-content-secondary sm:text-sm"
-                    title={node.ownerWallet}
-                  >
-                    {truncateAddress(node.ownerWallet, 6)}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums text-content-secondary">
                     {node.committeeWalletOpens}

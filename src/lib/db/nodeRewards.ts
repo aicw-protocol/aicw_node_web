@@ -6,7 +6,6 @@ import type { NodeRecord, NodeStatus } from "./types";
 
 interface NodeRewardRow extends RowDataPacket {
   id: number;
-  owner_wallet: string;
   node_id: string;
   created_at: Date;
   status: NodeStatus;
@@ -20,7 +19,7 @@ interface NodeRewardRow extends RowDataPacket {
 
 export interface NodeRewardEntry extends Pick<
   NodeRecord,
-  "id" | "ownerWallet" | "nodeId" | "createdAt" | "status"
+  "id" | "nodeId" | "createdAt" | "status"
 > {
   committeeWalletOpens: number;
   accruedSol: number;
@@ -56,7 +55,6 @@ function mapNodeReward(row: NodeRewardRow): NodeRewardEntry {
 
   return {
     id: row.id,
-    ownerWallet: row.owner_wallet,
     nodeId: row.node_id,
     createdAt: row.created_at.toISOString(),
     status: row.status,
@@ -75,7 +73,7 @@ export async function listNodeRewards(): Promise<NodeRewardsResponse> {
   await ensureRewardSchema(pool);
 
   const [rows] = await pool.query<NodeRewardRow[]>(
-    `SELECT id, owner_wallet, node_id, created_at, status,
+    `SELECT id, node_id, created_at, status,
             committee_wallet_opens, referral_wallet_opens,
             reward_sol, reward_token, withdrawn_sol, withdrawn_token
      FROM nodes
