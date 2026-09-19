@@ -55,7 +55,7 @@ export function NodesHero({ data, loadState }: NodesHeroProps) {
             />
           </div>
 
-          <div className="mt-6">
+          <div className="mt-6 min-h-[1.5rem]">
             <RecentRegistrationTicker nodes={nodes} />
           </div>
 
