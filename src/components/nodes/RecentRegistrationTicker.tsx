@@ -17,7 +17,7 @@ export function RecentRegistrationTicker({ nodes }: RecentRegistrationTickerProp
   const items = useMemo(() => {
     return [...nodes]
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 8)
+      .slice(0, 20)
       .map((node) => {
         const region =
           node.latitude !== null && node.longitude !== null
