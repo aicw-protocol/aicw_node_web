@@ -378,7 +378,7 @@ export default function GuidePage() {
                   servers (NATS, Consul, node web ping). Allow outbound connections.
                 </li>
                 <li>
-                  <strong>Wait up to 2 minutes</strong> — The first ping can take a
+                  <strong>Wait up to 3 minutes</strong> — The first ping can take a
                   little time to show as Active.
                 </li>
               </ul>
@@ -564,7 +564,7 @@ export default function GuidePage() {
               How much bandwidth/CPU does the node use?
             </summary>
             <div className="border-t border-surface-border p-4 text-sm text-content-secondary">
-              Very little. The node sends a small status ping every 90 seconds and
+              Very little. The node sends a small status ping every 3 minutes and
               only does real work when a wallet is being created through it. Most
               of the time it's idle. Each ping also updates your node's approximate
               location on the global map (from its network IP).

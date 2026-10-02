@@ -6,6 +6,7 @@ import {
   WALLET_ISSUANCE_FEE_SOL,
   type MpcRewardEventType,
 } from "@/lib/rewardConfig";
+import { PING_MAX_AGE_MS } from "@/lib/referralConfig";
 import { getPool } from "./pool";
 import { ensureRewardSchema } from "./rewardSchema";
 
@@ -57,7 +58,7 @@ async function ensureReady(): Promise<void> {
 
 export async function listActiveNodeIds(): Promise<string[]> {
   const pool = await getPool();
-  const cutoff = new Date(Date.now() - 5 * 60 * 1000);
+  const cutoff = new Date(Date.now() - PING_MAX_AGE_MS);
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT node_id FROM nodes
      WHERE status = 'registered'

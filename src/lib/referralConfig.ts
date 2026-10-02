@@ -18,9 +18,10 @@ export const NODE_FEE_LAMPORTS = solToLamports(NODE_FEE_SOL);
 /**
  * Maximum age of a ping (in milliseconds) to consider a node "active".
  * Nodes without a recent ping are excluded from referral selection.
- * Set to 5 minutes by default.
+ * Kept at 10 minutes so a 180s ping interval still tolerates ~2 missed pings
+ * (same operational margin as the previous 90s / 5m pair).
  */
-export const PING_MAX_AGE_MS = 5 * 60 * 1000;
+export const PING_MAX_AGE_MS = 10 * 60 * 1000;
 
 /**
  * Get the node_web API base URL for cross-project calls.

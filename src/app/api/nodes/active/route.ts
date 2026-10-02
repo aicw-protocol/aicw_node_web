@@ -4,10 +4,10 @@ import { getPool } from "@/lib/db/pool";
 import { PING_MAX_AGE_MS } from "@/lib/referralConfig";
 import type { RowDataPacket } from "mysql2";
 
-export const revalidate = 45;
+export const revalidate = 90;
 
 const SHARED_CACHE_CONTROL =
-  "public, s-maxage=45, stale-while-revalidate=60";
+  "public, s-maxage=90, stale-while-revalidate=120";
 
 interface ActiveNodeRow extends RowDataPacket {
   node_id: string;

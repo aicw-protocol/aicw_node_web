@@ -32,6 +32,11 @@ export async function GET() {
       tokenSymbol: getRewardTokenSymbol(),
       tokenMint: getRewardTokenMint(),
     },
-    { headers: rewardCorsHeaders },
+    {
+      headers: {
+        ...rewardCorsHeaders,
+        "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
+      },
+    },
   );
 }

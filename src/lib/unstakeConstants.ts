@@ -42,4 +42,4 @@ export function formatUnstakeReturnWaitShort(): string {
 }
 
 /** Treat node as still active if pinged within this window. */
-export const NODE_ACTIVE_PING_MS = 5 * 60 * 1000;
+export const NODE_ACTIVE_PING_MS = 10 * 60 * 1000;

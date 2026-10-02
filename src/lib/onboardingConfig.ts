@@ -21,8 +21,8 @@ export function getOnboardingConfig(): OnboardingConfig {
 
   const pingIntervalRaw = process.env.NEXT_PUBLIC_NODE_PING_INTERVAL_SECONDS?.trim();
   const pingIntervalSeconds = pingIntervalRaw
-    ? Math.max(30, Number.parseInt(pingIntervalRaw, 10) || 90)
-    : 90;
+    ? Math.max(30, Number.parseInt(pingIntervalRaw, 10) || 180)
+    : 180;
 
   const networkConfigYaml =
     process.env.ONBOARDING_NETWORK_CONFIG_YAML?.trim() || NETWORK_CONFIG_TEMPLATE;
